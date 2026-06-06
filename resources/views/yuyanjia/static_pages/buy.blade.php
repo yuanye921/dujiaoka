@@ -3,6 +3,12 @@
 @section('content')
     @php
         $skus = collect($active_skus ?? []);
+        $realSkus = $skus->filter(function ($sku) {
+            return strtoupper((string)($sku['sku_code'] ?? '')) !== 'DEFAULT';
+        })->values();
+        if ($realSkus->isNotEmpty()) {
+            $skus = $realSkus;
+        }
         if ($skus->isEmpty()) {
             $skus = collect([[
                 'id' => '',

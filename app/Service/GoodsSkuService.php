@@ -7,6 +7,7 @@ use App\Models\BaseModel;
 use App\Models\Carmis;
 use App\Models\Goods;
 use App\Models\GoodsSku;
+use App\Models\Order;
 
 class GoodsSkuService
 {
@@ -56,9 +57,17 @@ class GoodsSkuService
             $this->fillMissingFromGoods($sku, $goods);
         }
 
-        $activeSkus = $skus->where('is_open', BaseModel::STATUS_OPEN);
+        $this->closeEmptyDefaultSkuWhenRealSkusExist($goods, $skus);
+
+        $skus = GoodsSku::query()
+            ->where('goods_id', $goods->id)
+            ->orderBy('ord', 'DESC')
+            ->orderBy('id')
+            ->get();
+
+        $activeSkus = $this->visibleSkus($skus->where('is_open', BaseModel::STATUS_OPEN));
         if ($activeSkus->isEmpty()) {
-            $activeSkus = $skus;
+            $activeSkus = $this->visibleSkus($skus);
         }
 
         $minPrice = $activeSkus->min('actual_price');
@@ -83,10 +92,9 @@ class GoodsSkuService
                 throw new RuleValidationException('请选择有效的商品规格');
             }
         } else {
-            $sku = (clone $query)->where('sku_code', GoodsSku::DEFAULT_SKU_CODE)->first();
-            if (!$sku) {
-                $sku = (clone $query)->orderBy('ord', 'DESC')->orderBy('id')->first();
-            }
+            $sku = $this->visibleSkus(
+                (clone $query)->orderBy('ord', 'DESC')->orderBy('id')->get()
+            )->first();
         }
 
         if (!$sku) {
@@ -124,6 +132,16 @@ class GoodsSkuService
                 return [$sku->id => $sku->display_name];
             })
             ->toArray();
+    }
+
+    public function visibleSkus($skus)
+    {
+        $skus = collect($skus)->values();
+        $realSkus = $skus->filter(function ($sku) {
+            return strtoupper((string) data_get($sku, 'sku_code')) !== GoodsSku::DEFAULT_SKU_CODE;
+        })->values();
+
+        return $realSkus->isNotEmpty() ? $realSkus : $skus;
     }
 
     private function fillMissingFromGoods(GoodsSku $sku, Goods $goods): void
@@ -167,6 +185,39 @@ class GoodsSkuService
 
         if ($changed) {
             $sku->save();
+        }
+    }
+
+    private function closeEmptyDefaultSkuWhenRealSkusExist(Goods $goods, $skus): void
+    {
+        $defaultSku = collect($skus)->first(function ($sku) {
+            return strtoupper((string) $sku->sku_code) === GoodsSku::DEFAULT_SKU_CODE;
+        });
+
+        if (!$defaultSku) {
+            return;
+        }
+
+        $hasRealSku = collect($skus)->contains(function ($sku) use ($defaultSku) {
+            return $sku->id !== $defaultSku->id
+                && strtoupper((string) $sku->sku_code) !== GoodsSku::DEFAULT_SKU_CODE;
+        });
+
+        if (!$hasRealSku) {
+            return;
+        }
+
+        $hasCards = Carmis::query()->where('sku_id', $defaultSku->id)->exists();
+        $hasOrders = Order::query()->where('sku_id', $defaultSku->id)->exists();
+
+        if (
+            !$hasCards
+            && !$hasOrders
+            && (float) $defaultSku->actual_price <= 0
+            && (int) $defaultSku->in_stock <= 0
+        ) {
+            $defaultSku->is_open = BaseModel::STATUS_CLOSE;
+            $defaultSku->save();
         }
     }
 }

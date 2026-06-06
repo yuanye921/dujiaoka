@@ -27,6 +27,15 @@ use App\Models\GoodsGroup;
  */
 class GoodsService
 {
+    /**
+     * @var GoodsSkuService
+     */
+    private $goodsSkuService;
+
+    public function __construct()
+    {
+        $this->goodsSkuService = app(GoodsSkuService::class);
+    }
 
     /**
      * 获取所有分类并加载该分类下的商品
@@ -58,6 +67,12 @@ class GoodsService
         })->values();
         $goods->each(function ($group) {
             $group->gp_name = $group->display_name;
+            $group->goods->each(function ($goods) {
+                $goods->setRelation(
+                    'activeSkus',
+                    $this->goodsSkuService->visibleSkus($goods->activeSkus)
+                );
+            });
         });
         // 将自动
         return $goods ? $goods->toArray() : null;
@@ -84,6 +99,13 @@ class GoodsService
             ->withCount(['carmis' => function($query) {
                 $query->where('status', Carmis::STATUS_UNSOLD);
             }])->where('id', $id)->first();
+        if ($goods) {
+            $goods->setRelation(
+                'activeSkus',
+                $this->goodsSkuService->visibleSkus($goods->activeSkus)
+            );
+        }
+
         return $goods;
     }
 

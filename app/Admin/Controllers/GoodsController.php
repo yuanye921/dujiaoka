@@ -47,7 +47,8 @@ class GoodsController extends AdminController
                 ]);
             $grid->column('retail_price');
             $grid->column('actual_price')->display(function ($value) {
-                $prices = collect($this->activeSkus ?? [])
+                $skus = app(GoodsSkuService::class)->visibleSkus($this->activeSkus ?? []);
+                $prices = $skus
                     ->pluck('actual_price')
                     ->filter(function ($price) {
                         return $price !== null && $price !== '';
@@ -60,7 +61,7 @@ class GoodsController extends AdminController
                 $min = (float) $prices->min();
                 $max = (float) $prices->max();
 
-                if (bccomp((string) $min, (string) $max, 2) === 0) {
+                if (abs($min - $max) < 0.005) {
                     return number_format($min, 2);
                 }
 
@@ -73,19 +74,19 @@ class GoodsController extends AdminController
                         ->count();
                 }
 
-                $skus = collect($this->activeSkus ?? []);
+                $skus = app(GoodsSkuService::class)->visibleSkus($this->activeSkus ?? []);
                 return $skus->isEmpty() ? $this->in_stock : $skus->sum('in_stock');
             });
             $grid->column('sku_summary', '规格')->display(function () {
-                $skus = collect($this->activeSkus ?? []);
+                $skus = app(GoodsSkuService::class)->visibleSkus($this->activeSkus ?? []);
                 if ($skus->isEmpty()) {
                     return '默认规格';
                 }
 
                 return $skus->map(function ($sku) {
-                    return e($sku['sku_name'] ?? '默认规格') . '：' . number_format((float) ($sku['actual_price'] ?? 0), 2);
-                })->implode('<br>');
-            })->unescape();
+                    return ($sku['sku_name'] ?? '默认规格') . '：' . number_format((float) ($sku['actual_price'] ?? 0), 2);
+                })->implode(' / ');
+            });
             $grid->column('sales_volume');
             $grid->column('ord')->editable()->sortable();
             $grid->column('is_open')->switch();
