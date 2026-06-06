@@ -6,7 +6,7 @@
     <title>{{ isset($page_title) && $page_title ? $page_title . ' | ' : '' }}{{ dujiaoka_config_get('title', dujiaoka_config_get('text_logo', '预言家SHOP')) }}</title>
     <meta name="keywords" content="{{ dujiaoka_config_get('keywords') }}">
     <meta name="description" content="{{ dujiaoka_config_get('description') }}">
-    <link rel="stylesheet" href="{{ asset('assets/yuyanjia/css/app.css') }}?v=2026060705">
+    <link rel="stylesheet" href="{{ asset('assets/yuyanjia/css/app.css') }}?v=2026060706">
 </head>
 <body>
 <div class="site-shell">
@@ -61,7 +61,7 @@
         </div>
     </footer>
 </div>
-<script src="{{ asset('assets/yuyanjia/js/app.js') }}?v=2026060705"></script>
+<script src="{{ asset('assets/yuyanjia/js/app.js') }}?v=2026060706"></script>
 @yield('js')
 </body>
 </html>
