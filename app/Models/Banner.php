@@ -10,6 +10,16 @@ class Banner extends BaseModel
 
     protected $table = 'banners';
 
+    protected $fillable = [
+        'title',
+        'subtitle',
+        'button_text',
+        'image',
+        'link',
+        'ord',
+        'is_open',
+    ];
+
     public static function getIsOpenMap()
     {
         return [

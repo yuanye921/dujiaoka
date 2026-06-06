@@ -6,7 +6,7 @@
     <title>{{ isset($page_title) && $page_title ? $page_title . ' | ' : '' }}{{ dujiaoka_config_get('title', dujiaoka_config_get('text_logo', '预言家SHOP')) }}</title>
     <meta name="keywords" content="{{ dujiaoka_config_get('keywords') }}">
     <meta name="description" content="{{ dujiaoka_config_get('description') }}">
-    <link rel="stylesheet" href="{{ asset('assets/yuyanjia/css/app.css') }}?v=2026060602">
+    <link rel="stylesheet" href="{{ asset('assets/yuyanjia/css/app.css') }}?v=2026060701">
 </head>
 <body>
 <div class="site-shell">
@@ -22,6 +22,9 @@
                 <a href="{{ url('/') }}">首页</a>
                 <a href="{{ url('/') }}#goods">商品中心</a>
                 <a href="{{ url('order-search') }}">订单查询</a>
+                <button type="button" class="cart-nav" data-open-cart aria-label="打开购物车">
+                    购物车 <span data-cart-count>0</span>
+                </button>
             </nav>
         </div>
     </header>
@@ -30,13 +33,35 @@
         @yield('content')
     </main>
 
+    <aside class="cart-drawer" data-cart-drawer aria-hidden="true">
+        <div class="cart-backdrop" data-close-cart></div>
+        <section class="cart-panel" aria-label="购物车">
+            <header class="cart-head">
+                <div>
+                    <span class="eyebrow muted">Cart</span>
+                    <h2>购物车</h2>
+                </div>
+                <button type="button" class="notice-close" data-close-cart aria-label="关闭购物车">×</button>
+            </header>
+            <div class="cart-items" data-cart-items></div>
+            <div class="empty-state cart-empty" data-cart-empty>购物车还是空的</div>
+            <footer class="cart-foot">
+                <div>
+                    <span>预估合计</span>
+                    <strong><span data-cart-total>0.00</span> CNY</strong>
+                </div>
+                <button type="button" class="btn ghost" data-cart-clear>清空</button>
+            </footer>
+        </section>
+    </aside>
+
     <footer class="site-footer">
         <div class="container">
             {!! dujiaoka_config_get('footer') !!}
         </div>
     </footer>
 </div>
-<script src="{{ asset('assets/yuyanjia/js/app.js') }}?v=2026060602"></script>
+<script src="{{ asset('assets/yuyanjia/js/app.js') }}?v=2026060701"></script>
 @yield('js')
 </body>
 </html>

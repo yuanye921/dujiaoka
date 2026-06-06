@@ -64,9 +64,9 @@ class BannerController extends AdminController
     {
         return Form::make(new Banner(), function (Form $form) {
             $form->display('id');
-            $form->text('title', '标题')->required();
-            $form->textarea('subtitle', '副标题')->rows(3);
-            $form->text('button_text', '按钮文字')->default('浏览商品');
+            $form->text('title', '标题')->required()->help('显示在横幅左侧的大标题。');
+            $form->textarea('subtitle', '副标题')->rows(3)->help('可留空；支持换行。');
+            $form->text('button_text', '按钮文字')->default('了解更多')->help('可留空；按钮文字和跳转链接都填写时才显示按钮。');
             $form->image('image', '图片')->autoUpload()->uniqueName()->help('建议使用横图，例如 1600x450。');
             $form->text('link', '跳转链接')->default('/')->help('可以填站内路径，例如 /buy/1，也可以填完整网址。');
             $form->number('ord', '排序')->default(1)->help('数字越大越靠前。');

@@ -23,11 +23,12 @@ class VpayController extends PayController
             $this->loadGateWay($orderSN, $payway);
 
             //构造要请求的参数数组，无需改动
+            $returnUrl = url('payPage/success.html') . '?order_id=' . urlencode($this->order->order_sn);
             $parameter = array(
                 "payId" => date('YmdHis') . rand(1, 65535),//平台ID号
                 "price" => (float)$this->order->actual_price,//原价
                 'param' => $this->order->order_sn,
-                'returnUrl' => route('vpay-return', ['order_id' => $this->order->order_sn]),
+                'returnUrl' => $returnUrl,
                 'notifyUrl' => url($this->payGateway->pay_handleroute . '/notify_url'),
                 "isHtml" => 1,
             );
@@ -85,10 +86,14 @@ class VpayController extends PayController
 
     public function returnUrl(Request $request)
     {
-        $oid = $request->get('order_id');
+        $oid = $request->get('order_id') ?: $request->get('param') ?: $request->get('out_trade_no');
         // 异步通知还没到就跳转了，所以这里休眠2秒
         sleep(2);
-        return redirect(url('detail-order-sn', ['orderSN' => $oid]));
+        $target = url('payPage/success.html');
+        if ($oid) {
+            $target .= '?order_id=' . urlencode($oid);
+        }
+        return redirect($target);
     }
 
 }

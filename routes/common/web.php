@@ -20,6 +20,8 @@ Route::group(['middleware' => ['dujiaoka.boot'],'namespace' => 'Home'], function
     Route::post('create-order', 'OrderController@createOrder');
     // 结算页
     Route::get('bill/{orderSN}', 'OrderController@bill');
+    // 支付平台同步回跳落地点
+    Route::match(['get', 'post'], 'payPage/success.html', 'OrderController@paySuccess');
     // 通过订单号详情页
     Route::get('detail-order-sn/{orderSN}', 'OrderController@detailOrderSN');
     // 订单查询页
@@ -40,4 +42,3 @@ Route::group(['middleware' => ['install.check'],'namespace' => 'Home'], function
     // 执行安装
     Route::post('do-install', 'HomeController@doInstall');
 });
-

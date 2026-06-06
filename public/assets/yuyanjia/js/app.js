@@ -32,6 +32,248 @@
             });
         }
 
+        var noticeModal = document.querySelector('[data-notice-modal]');
+        if (noticeModal) {
+            var today = new Date().toISOString().slice(0, 10);
+            var todayKey = 'yuyanjia_notice_today_' + today;
+            var foreverKey = 'yuyanjia_notice_forever';
+            var canStore = true;
+
+            try {
+                window.localStorage.getItem(foreverKey);
+            } catch (error) {
+                canStore = false;
+            }
+
+            function stored(key) {
+                if (!canStore) return false;
+                return window.localStorage.getItem(key) === '1';
+            }
+
+            function remember(key) {
+                if (!canStore) return;
+                window.localStorage.setItem(key, '1');
+            }
+
+            function openNotice() {
+                noticeModal.classList.add('is-open');
+                noticeModal.setAttribute('aria-hidden', 'false');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeNotice() {
+                noticeModal.classList.remove('is-open');
+                noticeModal.setAttribute('aria-hidden', 'true');
+                document.body.style.overflow = '';
+            }
+
+            document.querySelectorAll('[data-open-notice]').forEach(function (button) {
+                button.addEventListener('click', openNotice);
+            });
+
+            document.querySelectorAll('[data-close-notice]').forEach(function (button) {
+                button.addEventListener('click', closeNotice);
+            });
+
+            var todayButton = document.querySelector('[data-notice-today]');
+            if (todayButton) {
+                todayButton.addEventListener('click', function () {
+                    remember(todayKey);
+                    closeNotice();
+                });
+            }
+
+            var foreverButton = document.querySelector('[data-notice-forever]');
+            if (foreverButton) {
+                foreverButton.addEventListener('click', function () {
+                    remember(foreverKey);
+                    closeNotice();
+                });
+            }
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && noticeModal.classList.contains('is-open')) {
+                    closeNotice();
+                }
+            });
+
+            if (!stored(todayKey) && !stored(foreverKey)) {
+                window.setTimeout(openNotice, 450);
+            }
+        }
+
+        var cartDrawer = document.querySelector('[data-cart-drawer]');
+        var cartItemsTarget = document.querySelector('[data-cart-items]');
+        var cartEmpty = document.querySelector('[data-cart-empty]');
+        var cartTotal = document.querySelector('[data-cart-total]');
+        var cartCounts = document.querySelectorAll('[data-cart-count]');
+        var cartKey = 'yuyanjia_cart_items';
+
+        function readCart() {
+            try {
+                var value = window.localStorage.getItem(cartKey);
+                var items = value ? JSON.parse(value) : [];
+                return Array.isArray(items) ? items : [];
+            } catch (error) {
+                return [];
+            }
+        }
+
+        function writeCart(items) {
+            try {
+                window.localStorage.setItem(cartKey, JSON.stringify(items));
+            } catch (error) {}
+        }
+
+        function openCart() {
+            if (!cartDrawer) return;
+            cartDrawer.classList.add('is-open');
+            cartDrawer.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCart() {
+            if (!cartDrawer) return;
+            cartDrawer.classList.remove('is-open');
+            cartDrawer.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+
+        function escapeHtml(text) {
+            return String(text || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function cartQuantity(items) {
+            return items.reduce(function (sum, item) {
+                return sum + Number(item.qty || 0);
+            }, 0);
+        }
+
+        function renderCart() {
+            if (!cartItemsTarget) return;
+            var items = readCart();
+            var total = items.reduce(function (sum, item) {
+                return sum + Number(item.price || 0) * Number(item.qty || 0);
+            }, 0);
+
+            cartCounts.forEach(function (target) {
+                target.textContent = String(cartQuantity(items));
+            });
+            if (cartTotal) cartTotal.textContent = total.toFixed(2);
+            if (cartEmpty) cartEmpty.style.display = items.length ? 'none' : '';
+
+            cartItemsTarget.innerHTML = items.map(function (item) {
+                return '' +
+                    '<article class="cart-item" data-cart-row="' + escapeHtml(item.id) + '">' +
+                        '<img src="' + escapeHtml(item.image) + '" alt="' + escapeHtml(item.name) + '">' +
+                        '<div>' +
+                            '<h3>' + escapeHtml(item.name) + '</h3>' +
+                            '<p>' + escapeHtml(item.category || '商品') + '</p>' +
+                            '<div class="cart-item-row">' +
+                                '<strong>' + Number(item.price || 0).toFixed(2) + ' CNY</strong>' +
+                                '<div class="qty-control">' +
+                                    '<button type="button" data-cart-dec="' + escapeHtml(item.id) + '">-</button>' +
+                                    '<span>' + Number(item.qty || 0) + '</span>' +
+                                    '<button type="button" data-cart-inc="' + escapeHtml(item.id) + '">+</button>' +
+                                '</div>' +
+                            '</div>' +
+                            '<div class="cart-item-actions">' +
+                                '<a href="' + escapeHtml(item.url) + '">去购买</a>' +
+                                '<button type="button" data-cart-remove="' + escapeHtml(item.id) + '">移除</button>' +
+                            '</div>' +
+                        '</div>' +
+                    '</article>';
+            }).join('');
+        }
+
+        function updateCartItem(id, updater) {
+            var items = readCart();
+            items = items.map(function (item) {
+                if (String(item.id) !== String(id)) return item;
+                return updater(item);
+            }).filter(function (item) {
+                return Number(item.qty || 0) > 0;
+            });
+            writeCart(items);
+            renderCart();
+        }
+
+        document.querySelectorAll('[data-open-cart]').forEach(function (button) {
+            button.addEventListener('click', openCart);
+        });
+
+        document.querySelectorAll('[data-close-cart]').forEach(function (button) {
+            button.addEventListener('click', closeCart);
+        });
+
+        document.querySelectorAll('[data-cart-add]').forEach(function (button) {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                var id = button.getAttribute('data-cart-id');
+                var items = readCart();
+                var existing = items.find(function (item) { return String(item.id) === String(id); });
+                if (existing) {
+                    existing.qty = Number(existing.qty || 0) + 1;
+                } else {
+                    items.push({
+                        id: id,
+                        name: button.getAttribute('data-cart-name') || '商品',
+                        category: button.getAttribute('data-cart-category') || '',
+                        price: Number(button.getAttribute('data-cart-price') || 0),
+                        stock: Number(button.getAttribute('data-cart-stock') || 0),
+                        image: button.getAttribute('data-cart-image') || '',
+                        url: button.getAttribute('data-cart-url') || '/',
+                        qty: 1
+                    });
+                }
+                writeCart(items);
+                renderCart();
+                openCart();
+            });
+        });
+
+        if (cartItemsTarget) {
+            cartItemsTarget.addEventListener('click', function (event) {
+                var inc = event.target.closest('[data-cart-inc]');
+                var dec = event.target.closest('[data-cart-dec]');
+                var remove = event.target.closest('[data-cart-remove]');
+                if (inc) {
+                    updateCartItem(inc.getAttribute('data-cart-inc'), function (item) {
+                        item.qty = Number(item.qty || 0) + 1;
+                        return item;
+                    });
+                }
+                if (dec) {
+                    updateCartItem(dec.getAttribute('data-cart-dec'), function (item) {
+                        item.qty = Number(item.qty || 0) - 1;
+                        return item;
+                    });
+                }
+                if (remove) {
+                    updateCartItem(remove.getAttribute('data-cart-remove'), function (item) {
+                        item.qty = 0;
+                        return item;
+                    });
+                }
+            });
+        }
+
+        var clearCart = document.querySelector('[data-cart-clear]');
+        if (clearCart) {
+            clearCart.addEventListener('click', function () {
+                writeCart([]);
+                renderCart();
+            });
+        }
+
+        renderCart();
+
         var skuButtons = document.querySelectorAll('[data-sku-option]');
         var skuInput = document.querySelector('[data-sku-input]');
         var priceTarget = document.querySelector('[data-sku-price-label]');

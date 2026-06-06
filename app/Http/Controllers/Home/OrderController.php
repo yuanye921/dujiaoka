@@ -132,6 +132,46 @@ class OrderController extends BaseController
         return $this->render('static_pages/bill', $order, __('dujiaoka.page-title.bill'));
     }
 
+    /**
+     * 支付平台同步回跳页。
+     */
+    public function paySuccess(Request $request)
+    {
+        $orderSN = $this->resolveSuccessOrderSN($request);
+        if ($orderSN) {
+            sleep(2);
+            return redirect(url('detail-order-sn', ['orderSN' => $orderSN]));
+        }
+
+        return redirect(url('order-search'));
+    }
+
+    private function resolveSuccessOrderSN(Request $request): ?string
+    {
+        foreach (['order_id', 'orderSN', 'order_sn', 'out_trade_no', 'param'] as $key) {
+            $value = trim((string) $request->input($key, ''));
+            if ($value !== '' && $this->orderService->detailOrderSN($value)) {
+                return $value;
+            }
+        }
+
+        $cookies = Cookie::get('dujiaoka_orders');
+        $orderSNS = json_decode($cookies ?: '[]', true);
+        if (! is_array($orderSNS)) {
+            return null;
+        }
+
+        $orderSNS = array_reverse(array_values(array_filter($orderSNS)));
+        foreach ($orderSNS as $orderSN) {
+            $orderSN = trim((string) $orderSN);
+            if ($orderSN !== '' && $this->orderService->detailOrderSN($orderSN)) {
+                return $orderSN;
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * 订单状态监测

@@ -5,31 +5,67 @@
         $groups = collect($data ?? []);
         $banners = collect($banners ?? []);
         $banner = $banners->first();
-        $heroImage = $banner ? data_get($banner, 'image') : null;
-        $heroTitle = $banner ? data_get($banner, 'title') : dujiaoka_config_get('text_logo', '预言家SHOP');
-        $heroSubtitle = $banner ? data_get($banner, 'subtitle') : dujiaoka_config_get('description', '专业的产品与服务提供商');
-        $heroButton = $banner ? data_get($banner, 'button_text') : '浏览商品';
-        $heroLink = $banner ? (data_get($banner, 'link') ?: '#goods') : '#goods';
-        $heroStyle = $heroImage ? "background-image: linear-gradient(90deg, rgba(5,8,15,.96) 0%, rgba(5,8,15,.72) 45%, rgba(5,8,15,.22) 100%), url('" . picture_ulr($heroImage) . "')" : '';
+
+        $noticeHtml = trim((string) dujiaoka_config_get('notice', ''));
+        $hasNotice = trim(strip_tags($noticeHtml)) !== '';
+
+        $bannerImage = $banner ? trim((string) data_get($banner, 'image', '')) : '';
+        $bannerTitle = $banner ? trim((string) data_get($banner, 'title', '')) : '';
+        $bannerSubtitle = $banner ? trim((string) data_get($banner, 'subtitle', '')) : '';
+        $bannerButton = $banner ? trim((string) data_get($banner, 'button_text', '')) : '';
+        $bannerLink = $banner ? trim((string) data_get($banner, 'link', '')) : '';
+        $bannerStyle = $bannerImage !== ''
+            ? "background-image: linear-gradient(90deg, rgba(5,8,15,.94) 0%, rgba(5,8,15,.74) 45%, rgba(5,8,15,.20) 100%), url('" . picture_ulr($bannerImage) . "')"
+            : '';
     @endphp
 
-    <section class="hero" style="{{ $heroStyle }}">
-        <div class="container hero-inner">
-            <span class="eyebrow"><span></span>预言家SHOP</span>
-            <h1>{{ $heroTitle }}</h1>
-            <p>{!! nl2br(e($heroSubtitle)) !!}</p>
-            <div class="actions">
-                <a class="btn primary" href="{{ $heroLink }}">{{ $heroButton ?: '浏览商品' }}</a>
-                <a class="btn ghost" href="{{ url('order-search') }}">查询订单</a>
-            </div>
-        </div>
-    </section>
-
-    @if(trim(strip_tags(dujiaoka_config_get('notice', ''))))
-        <section class="notice-strip">
+    @if($hasNotice)
+        <section class="notice-bar">
             <div class="container">
-                <span>公告</span>
-                <div>{!! dujiaoka_config_get('notice') !!}</div>
+                <button type="button" class="notice-bar-button" data-open-notice>
+                    <span class="notice-dot">i</span>
+                    <strong>支付与售后须知</strong>
+                    <em>查看公告</em>
+                </button>
+            </div>
+        </section>
+
+        <div class="notice-modal" data-notice-modal aria-hidden="true">
+            <div class="notice-backdrop" data-close-notice></div>
+            <section class="notice-dialog" role="dialog" aria-modal="true" aria-label="支付与售后须知">
+                <header class="notice-dialog-head">
+                    <span class="notice-dot">i</span>
+                    <h2>支付与售后须知</h2>
+                    <button type="button" class="notice-close" data-close-notice aria-label="关闭公告">×</button>
+                </header>
+                <div class="notice-dialog-body">
+                    <div class="rich-text notice-rich-text">{!! $noticeHtml !!}</div>
+                </div>
+                <footer class="notice-dialog-foot">
+                    <button type="button" class="notice-muted-btn" data-notice-today>今日不再提示</button>
+                    <button type="button" class="notice-muted-btn" data-notice-forever>不再提示</button>
+                    <button type="button" class="btn primary" data-close-notice>关闭</button>
+                </footer>
+            </section>
+        </div>
+    @endif
+
+    @if($banner)
+        <section class="banner-section">
+            <div class="container">
+                <div class="banner-card" style="{{ $bannerStyle }}">
+                    <div class="banner-copy">
+                        @if($bannerTitle !== '')
+                            <h1>{{ $bannerTitle }}</h1>
+                        @endif
+                        @if($bannerSubtitle !== '')
+                            <p>{!! nl2br(e($bannerSubtitle)) !!}</p>
+                        @endif
+                        @if($bannerButton !== '' && $bannerLink !== '')
+                            <a class="btn primary" href="{{ $bannerLink }}">{{ $bannerButton }}</a>
+                        @endif
+                    </div>
+                </div>
             </div>
         </section>
     @endif
@@ -73,16 +109,26 @@
                             }
                             $prices = $skus->pluck('actual_price')->filter(function ($price) { return $price !== null; });
                             $price = $prices->isNotEmpty() ? $prices->min() : $goods['actual_price'];
+
+                            $cardImage = trim((string)($goods['picture'] ?? ''));
+                            if ($cardImage === '' || strpos($cardImage, 'assets/common/images/default') !== false) {
+                                $skuImage = $skus->pluck('picture')->filter(function ($picture) {
+                                    return trim((string)$picture) !== '';
+                                })->first();
+                                $cardImage = trim((string)$skuImage);
+                            }
+                            $cardImageUrl = picture_ulr($cardImage);
+                            $buyUrl = url("/buy/{$goods['id']}");
                         @endphp
                         <article class="product-card" data-group="group-{{ $group['id'] }}" data-product-name="{{ $goods['gd_name'] }}">
-                            <a href="{{ url("/buy/{$goods['id']}") }}" class="product-image">
-                                <img src="{{ picture_ulr($goods['picture']) }}" alt="{{ $goods['gd_name'] }}">
+                            <a href="{{ $buyUrl }}" class="product-image">
+                                <img src="{{ $cardImageUrl }}" alt="{{ $goods['gd_name'] }}">
                             </a>
                             <div class="product-body">
                                 <div class="meta-line">
                                     <span>分类 · {{ $group['gp_name'] }}</span>
                                 </div>
-                                <h3><a href="{{ url("/buy/{$goods['id']}") }}">{{ $goods['gd_name'] }}</a></h3>
+                                <h3><a href="{{ $buyUrl }}">{{ $goods['gd_name'] }}</a></h3>
                                 <div class="tags">
                                     <span class="tag {{ $isAuto ? 'blue' : 'amber' }}">{{ $isAuto ? '自动发货' : '人工处理' }}</span>
                                     <span class="tag green">库存 {{ $stock }}</span>
@@ -95,7 +141,22 @@
                                         <small>价格</small>
                                         <strong>{{ number_format((float)$price, 2) }} CNY</strong>
                                     </div>
-                                    <a class="icon-btn" href="{{ url("/buy/{$goods['id']}") }}" aria-label="购买 {{ $goods['gd_name'] }}">→</a>
+                                    <div class="card-actions">
+                                        <button
+                                            type="button"
+                                            class="icon-btn cart-add-btn"
+                                            aria-label="加入购物车 {{ $goods['gd_name'] }}"
+                                            data-cart-add
+                                            data-cart-id="{{ $goods['id'] }}"
+                                            data-cart-name="{{ $goods['gd_name'] }}"
+                                            data-cart-category="{{ $group['gp_name'] }}"
+                                            data-cart-price="{{ number_format((float)$price, 2, '.', '') }}"
+                                            data-cart-stock="{{ $stock }}"
+                                            data-cart-image="{{ $cardImageUrl }}"
+                                            data-cart-url="{{ $buyUrl }}"
+                                        >+</button>
+                                        <a class="icon-btn" href="{{ $buyUrl }}" aria-label="购买 {{ $goods['gd_name'] }}">→</a>
+                                    </div>
                                 </div>
                             </div>
                         </article>
