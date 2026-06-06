@@ -95,13 +95,7 @@
                 @forelse($groups as $group)
                     @foreach(($group['goods'] ?? []) as $goods)
                         @php
-                            $skus = collect($goods['active_skus'] ?? []);
-                            $realSkus = $skus->filter(function ($sku) {
-                                return strtoupper((string)($sku['sku_code'] ?? '')) !== 'DEFAULT';
-                            })->values();
-                            if ($realSkus->isNotEmpty()) {
-                                $skus = $realSkus;
-                            }
+                            $skus = app(\App\Service\GoodsSkuService::class)->payableSkus($goods['active_skus'] ?? []);
                             $isAuto = (int)$goods['type'] === \App\Models\Goods::AUTOMATIC_DELIVERY;
                             $stock = $isAuto ? (int)$skus->sum('carmis_count') : (int)$skus->sum('in_stock');
                             if ($skus->isEmpty()) {

@@ -47,7 +47,7 @@ class GoodsController extends AdminController
                 ]);
             $grid->column('retail_price');
             $grid->column('actual_price')->display(function ($value) {
-                $skus = app(GoodsSkuService::class)->visibleSkus($this->activeSkus ?? []);
+                $skus = app(GoodsSkuService::class)->payableSkus($this->activeSkus ?? []);
                 $prices = $skus
                     ->pluck('actual_price')
                     ->filter(function ($price) {
@@ -74,11 +74,11 @@ class GoodsController extends AdminController
                         ->count();
                 }
 
-                $skus = app(GoodsSkuService::class)->visibleSkus($this->activeSkus ?? []);
+                $skus = app(GoodsSkuService::class)->payableSkus($this->activeSkus ?? []);
                 return $skus->isEmpty() ? $this->in_stock : $skus->sum('in_stock');
             });
             $grid->column('sku_summary', '规格')->display(function () {
-                $skus = app(GoodsSkuService::class)->visibleSkus($this->activeSkus ?? []);
+                $skus = app(GoodsSkuService::class)->payableSkus($this->activeSkus ?? []);
                 if ($skus->isEmpty()) {
                     return '默认规格';
                 }

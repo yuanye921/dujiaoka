@@ -70,9 +70,9 @@ class GoodsSkuService
             ->orderBy('id')
             ->get();
 
-        $activeSkus = $this->visibleSkus($skus->where('is_open', BaseModel::STATUS_OPEN));
+        $activeSkus = $this->payableSkus($skus->where('is_open', BaseModel::STATUS_OPEN));
         if ($activeSkus->isEmpty()) {
-            $activeSkus = $this->visibleSkus($skus);
+            $activeSkus = $this->payableSkus($skus);
         }
 
         $minPrice = $activeSkus->min('actual_price');
@@ -97,7 +97,7 @@ class GoodsSkuService
                 throw new RuleValidationException('请选择有效的商品规格');
             }
         } else {
-            $sku = $this->visibleSkus(
+            $sku = $this->payableSkus(
                 (clone $query)->orderBy('ord', 'DESC')->orderBy('id')->get()
             )->first();
         }
@@ -135,7 +135,7 @@ class GoodsSkuService
             ->get()
             ->groupBy('goods_id')
             ->flatMap(function ($skus) {
-                return $this->visibleSkus($skus);
+                return $this->payableSkus($skus);
             })
             ->mapWithKeys(function (GoodsSku $sku) {
                 return [$sku->id => $sku->display_name];
@@ -147,10 +147,20 @@ class GoodsSkuService
     {
         $skus = collect($skus)->values();
         $realSkus = $skus->filter(function ($sku) {
-            return strtoupper((string) data_get($sku, 'sku_code')) !== GoodsSku::DEFAULT_SKU_CODE;
+            return !$this->isDefaultLikeSku($sku);
         })->values();
 
         return $realSkus->isNotEmpty() ? $realSkus : $skus;
+    }
+
+    public function payableSkus($skus)
+    {
+        $visibleSkus = $this->visibleSkus($skus);
+        $pricedSkus = $visibleSkus->filter(function ($sku) {
+            return (float) data_get($sku, 'actual_price', 0) > 0;
+        })->values();
+
+        return $pricedSkus->isNotEmpty() ? $pricedSkus : $visibleSkus;
     }
 
     private function fillMissingFromGoods(GoodsSku $sku, Goods $goods): void
@@ -200,7 +210,7 @@ class GoodsSkuService
     private function closeEmptyDefaultSkuWhenRealSkusExist(Goods $goods, $skus): void
     {
         $defaultSku = collect($skus)->first(function ($sku) {
-            return strtoupper((string) $sku->sku_code) === GoodsSku::DEFAULT_SKU_CODE;
+            return $this->isDefaultLikeSku($sku);
         });
 
         if (!$defaultSku) {
@@ -209,7 +219,7 @@ class GoodsSkuService
 
         $hasRealSku = collect($skus)->contains(function ($sku) use ($defaultSku) {
             return $sku->id !== $defaultSku->id
-                && strtoupper((string) $sku->sku_code) !== GoodsSku::DEFAULT_SKU_CODE;
+                && !$this->isDefaultLikeSku($sku);
         });
 
         if (!$hasRealSku) {
@@ -232,9 +242,28 @@ class GoodsSkuService
     {
         return GoodsSku::query()
             ->where('goods_id', $goods->id)
-            ->where('sku_code', '<>', GoodsSku::DEFAULT_SKU_CODE)
             ->orderBy('ord', 'DESC')
             ->orderBy('id')
-            ->first();
+            ->get()
+            ->first(function ($sku) {
+                return !$this->isDefaultLikeSku($sku);
+            });
+    }
+
+    private function isDefaultLikeSku($sku): bool
+    {
+        $code = strtoupper((string) data_get($sku, 'sku_code'));
+        $name = trim((string) data_get($sku, 'sku_name'));
+        $price = (float) data_get($sku, 'actual_price', 0);
+
+        if ($code === GoodsSku::DEFAULT_SKU_CODE) {
+            return true;
+        }
+
+        if ($name === '默认规格') {
+            return true;
+        }
+
+        return $price <= 0 && ($name === '' || strpos($name, '默认') !== false);
     }
 }
