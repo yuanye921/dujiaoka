@@ -26,11 +26,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 try:
     import psycopg2
     import psycopg2.extras
+except ImportError:
+    psycopg2 = None
+
+try:
     import pymysql
-except ImportError as exc:
-    print("Missing dependency:", exc, file=sys.stderr)
-    print("Install with: pip install psycopg2-binary pymysql", file=sys.stderr)
-    sys.exit(2)
+except ImportError:
+    pymysql = None
 
 
 OLD_STATUS_WAIT_PAY = 1
@@ -207,6 +209,8 @@ def latest(rows: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Dujiao-Next PostgreSQL -> old dujiaoka MySQL migration helper")
     parser.add_argument("--pg-dsn", default=os.getenv("NEXT_PG_DSN"), help="PostgreSQL DSN for Dujiao-Next")
+    parser.add_argument("--source-json", help="Read Dujiao-Next source rows from an exported JSON file")
+    parser.add_argument("--export-json", help="Export Dujiao-Next source rows to JSON before applying")
     parser.add_argument("--mysql-host", default=os.getenv("OLD_MYSQL_HOST", "127.0.0.1"))
     parser.add_argument("--mysql-port", type=int, default=int(os.getenv("OLD_MYSQL_PORT", "3306")))
     parser.add_argument("--mysql-db", default=os.getenv("OLD_MYSQL_DB"))
@@ -217,22 +221,48 @@ def main() -> int:
     parser.add_argument("--truncate-target", action="store_true", help="Delete target goods/orders/carmis data before import.")
     args = parser.parse_args()
 
-    if not args.pg_dsn:
-        print("Please provide --pg-dsn or NEXT_PG_DSN.", file=sys.stderr)
-        return 2
+    pg = None
+    if args.source_json:
+        with open(args.source_json, "r", encoding="utf-8") as fh:
+            source = json.load(fh)
+    else:
+        if not args.pg_dsn:
+            print("Please provide --pg-dsn, NEXT_PG_DSN, or --source-json.", file=sys.stderr)
+            return 2
+        if psycopg2 is None:
+            print("Missing dependency: psycopg2-binary", file=sys.stderr)
+            print("Install with: pip install psycopg2-binary", file=sys.stderr)
+            return 2
+        pg = psycopg2.connect(args.pg_dsn)
+        source = {
+            "categories": fetch_table_pg(pg, "categories"),
+            "products": fetch_table_pg(pg, "products"),
+            "product_skus": fetch_table_pg(pg, "product_skus"),
+            "card_secrets": fetch_table_pg(pg, "card_secrets"),
+            "orders": fetch_table_pg(pg, "orders"),
+            "order_items": fetch_table_pg(pg, "order_items"),
+            "payments": fetch_table_pg(pg, "payments"),
+            "fulfillments": fetch_table_pg(pg, "fulfillments"),
+            "payment_channels": fetch_table_pg(pg, "payment_channels"),
+        }
 
-    pg = psycopg2.connect(args.pg_dsn)
-    source = {
-        "categories": fetch_table_pg(pg, "categories"),
-        "products": fetch_table_pg(pg, "products"),
-        "product_skus": fetch_table_pg(pg, "product_skus"),
-        "card_secrets": fetch_table_pg(pg, "card_secrets"),
-        "orders": fetch_table_pg(pg, "orders"),
-        "order_items": fetch_table_pg(pg, "order_items"),
-        "payments": fetch_table_pg(pg, "payments"),
-        "fulfillments": fetch_table_pg(pg, "fulfillments"),
-        "payment_channels": fetch_table_pg(pg, "payment_channels"),
-    }
+    for name in [
+        "categories",
+        "products",
+        "product_skus",
+        "card_secrets",
+        "orders",
+        "order_items",
+        "payments",
+        "fulfillments",
+        "payment_channels",
+    ]:
+        source.setdefault(name, [])
+
+    if args.export_json:
+        with open(args.export_json, "w", encoding="utf-8") as fh:
+            json.dump(source, fh, ensure_ascii=False, indent=2, default=str)
+        print(f"Exported source JSON: {args.export_json}")
 
     report = {
         "mode": "apply" if args.apply else "dry-run",
@@ -259,11 +289,21 @@ def main() -> int:
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
     if not args.apply:
+        if pg is not None:
+            pg.close()
         print("\nDry-run finished. Add --apply to write into MySQL.")
         return 0
 
     if not args.mysql_db:
         print("Please provide --mysql-db or OLD_MYSQL_DB when using --apply.", file=sys.stderr)
+        if pg is not None:
+            pg.close()
+        return 2
+    if pymysql is None:
+        print("Missing dependency: pymysql", file=sys.stderr)
+        print("Install with: pip install pymysql", file=sys.stderr)
+        if pg is not None:
+            pg.close()
         return 2
 
     mysql_conn = pymysql.connect(
@@ -488,7 +528,8 @@ def main() -> int:
         raise
     finally:
         mysql_conn.close()
-        pg.close()
+        if pg is not None:
+            pg.close()
 
     print("\nApply finished.")
     if unmatched_payments:
