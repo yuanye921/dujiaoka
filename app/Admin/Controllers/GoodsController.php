@@ -15,6 +15,7 @@ use Dcat\Admin\Grid;
 use Dcat\Admin\Show;
 use Dcat\Admin\Http\Controllers\AdminController;
 use App\Models\Goods as GoodsModel;
+use App\Service\GoodsSkuService;
 
 class GoodsController extends AdminController
 {
@@ -27,7 +28,7 @@ class GoodsController extends AdminController
      */
     protected function grid()
     {
-        return Grid::make(new Goods(['group', 'coupon']), function (Grid $grid) {
+        return Grid::make(new Goods(['group', 'coupon', 'activeSkus']), function (Grid $grid) {
             $grid->model()->orderBy('id', 'DESC');
             $grid->column('id')->sortable();
             $grid->column('picture')->image('', 100, 100);
@@ -44,17 +45,46 @@ class GoodsController extends AdminController
                     GoodsModel::MANUAL_PROCESSING => Admin::color()->info(),
                 ]);
             $grid->column('retail_price');
-            $grid->column('actual_price')->sortable();
+            $grid->column('actual_price')->display(function ($value) {
+                $prices = collect($this->activeSkus ?? [])
+                    ->pluck('actual_price')
+                    ->filter(function ($price) {
+                        return $price !== null && $price !== '';
+                    });
+
+                if ($prices->isEmpty()) {
+                    return number_format((float) $value, 2);
+                }
+
+                $min = (float) $prices->min();
+                $max = (float) $prices->max();
+
+                if (bccomp((string) $min, (string) $max, 2) === 0) {
+                    return number_format($min, 2);
+                }
+
+                return number_format($min, 2) . ' - ' . number_format($max, 2);
+            })->sortable();
             $grid->column('in_stock')->display(function () {
-                // 如果为自动发货，则加载库存卡密
                 if ($this->type == GoodsModel::AUTOMATIC_DELIVERY) {
                     return Carmis::query()->where('goods_id', $this->id)
                         ->where('status', Carmis::STATUS_UNSOLD)
                         ->count();
-                } else {
-                    return $this->in_stock;
                 }
+
+                $skus = collect($this->activeSkus ?? []);
+                return $skus->isEmpty() ? $this->in_stock : $skus->sum('in_stock');
             });
+            $grid->column('sku_summary', '规格')->display(function () {
+                $skus = collect($this->activeSkus ?? []);
+                if ($skus->isEmpty()) {
+                    return '默认规格';
+                }
+
+                return $skus->map(function ($sku) {
+                    return e($sku['sku_name'] ?? '默认规格') . '：' . number_format((float) ($sku['actual_price'] ?? 0), 2);
+                })->implode('<br>');
+            })->unescape();
             $grid->column('sales_volume');
             $grid->column('ord')->editable()->sortable();
             $grid->column('is_open')->switch();
@@ -136,7 +166,7 @@ class GoodsController extends AdminController
      */
     protected function form()
     {
-        return Form::make(new Goods(), function (Form $form) {
+        return Form::make(new Goods(['skus']), function (Form $form) {
             $form->display('id');
             $form->text('gd_name')->required();
             $form->text('gd_description')->required();
@@ -146,9 +176,18 @@ class GoodsController extends AdminController
             )->required();
             $form->image('picture')->autoUpload()->uniqueName()->help(admin_trans('goods.helps.picture'));
             $form->radio('type')->options(GoodsModel::getGoodsTypeMap())->default(GoodsModel::AUTOMATIC_DELIVERY)->required();
-            $form->currency('retail_price')->default(0)->help(admin_trans('goods.helps.retail_price'));
-            $form->currency('actual_price')->default(0)->required();
-            $form->number('in_stock')->help(admin_trans('goods.helps.in_stock'));
+            $form->hasMany('skus', '商品规格 / SKU', function (Form\NestedForm $form) {
+                $form->text('sku_name', '规格名称')->placeholder('例如：10元密钥、50元额度、半年卡')->required();
+                $form->currency('actual_price', '规格售价')->default(0)->required();
+                $form->number('in_stock', '规格库存')->default(0)->help('人工处理商品使用；自动发货库存来自该规格绑定的卡密数量。');
+                $form->image('picture', '规格图片')->autoUpload()->uniqueName();
+                $form->number('ord', '排序')->default(1);
+                $form->switch('is_open', '是否启用')->default(GoodsSku::STATUS_OPEN);
+                $form->text('sku_code', '规格编码')->placeholder('可留空，系统自动生成')->help('只有接口对接时才需要固定编码；普通商品不用填。');
+            });
+            $form->currency('retail_price', '划线价')->default(0)->help(admin_trans('goods.helps.retail_price'));
+            $form->currency('actual_price', '默认售价')->default(0)->required()->help('兼容旧版字段；保存后会自动同步为启用规格里的最低售价。');
+            $form->number('in_stock', '默认库存')->help('兼容旧版字段；保存后会自动同步为启用规格库存汇总。自动发货的真实库存仍看卡密数量。');
             $form->number('sales_volume');
             $form->number('buy_limit_num')->help(admin_trans('goods.helps.buy_limit_num'));
             $form->editor('buy_prompt');
@@ -156,17 +195,20 @@ class GoodsController extends AdminController
             $form->textarea('other_ipu_cnf')->help(admin_trans('goods.helps.other_ipu_cnf'));
             $form->textarea('wholesale_price_cnf')->help(admin_trans('goods.helps.wholesale_price_cnf'));
             $form->textarea('api_hook');
-            $form->hasMany('skus', '商品规格', function (Form\NestedForm $form) {
-                $form->text('sku_name', '规格名称')->required();
-                $form->text('sku_code', '规格编码')->default(GoodsSku::DEFAULT_SKU_CODE)->required();
-                $form->currency('actual_price', '规格价格')->default(0)->required();
-                $form->image('picture', '规格图片')->autoUpload()->uniqueName();
-                $form->number('in_stock', '手动库存')->default(0)->help('人工处理商品使用；自动发货库存来自卡密数量。');
-                $form->number('ord', '排序')->default(1);
-                $form->switch('is_open', '是否启用')->default(GoodsSku::STATUS_OPEN);
-            });
             $form->number('ord')->default(1)->help(admin_trans('dujiaoka.ord'));
             $form->switch('is_open')->default(GoodsModel::STATUS_OPEN);
+
+            $form->saved(function (Form $form) {
+                $goodsID = $form->model()->id ?? null;
+                if (!$goodsID) {
+                    return;
+                }
+
+                $goods = GoodsModel::query()->find($goodsID);
+                if ($goods) {
+                    app(GoodsSkuService::class)->syncAfterGoodsSaved($goods);
+                }
+            });
         });
     }
 }

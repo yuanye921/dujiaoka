@@ -18,6 +18,7 @@ class GoodsSkuService
             ->first();
 
         if ($sku) {
+            $this->fillMissingFromGoods($sku, $goods);
             return $sku;
         }
 
@@ -33,6 +34,45 @@ class GoodsSkuService
         $sku->save();
 
         return $sku;
+    }
+
+    public function syncAfterGoodsSaved(Goods $goods): void
+    {
+        $skus = GoodsSku::query()
+            ->where('goods_id', $goods->id)
+            ->orderBy('ord', 'DESC')
+            ->orderBy('id')
+            ->get();
+
+        if ($skus->isEmpty()) {
+            $skus = collect([$this->ensureDefaultSku($goods)]);
+        }
+
+        $this->ensureOneDefaultCode($goods, $skus);
+
+        $skus = GoodsSku::query()
+            ->where('goods_id', $goods->id)
+            ->orderBy('ord', 'DESC')
+            ->orderBy('id')
+            ->get();
+
+        foreach ($skus as $sku) {
+            $this->fillMissingFromGoods($sku, $goods);
+        }
+
+        $activeSkus = $skus->where('is_open', BaseModel::STATUS_OPEN);
+        if ($activeSkus->isEmpty()) {
+            $activeSkus = $skus;
+        }
+
+        $minPrice = $activeSkus->min('actual_price');
+        $stock = (int) $activeSkus->sum('in_stock');
+
+        Goods::query()->where('id', $goods->id)->update([
+            'actual_price' => $minPrice === null ? $goods->actual_price : $minPrice,
+            'in_stock' => $stock,
+            'updated_at' => date('Y-m-d H:i:s'),
+        ]);
     }
 
     public function resolveForGoods(Goods $goods, $skuID = null): GoodsSku
@@ -85,5 +125,68 @@ class GoodsSkuService
                 return [$sku->id => $sku->display_name];
             })
             ->toArray();
+    }
+
+    private function ensureOneDefaultCode(Goods $goods, $skus): void
+    {
+        $default = $skus->first(function (GoodsSku $sku) {
+            return $sku->sku_code === GoodsSku::DEFAULT_SKU_CODE;
+        });
+
+        if ($default) {
+            return;
+        }
+
+        $first = $skus->first();
+        if (!$first) {
+            return;
+        }
+
+        $first->sku_code = GoodsSku::DEFAULT_SKU_CODE;
+        $first->save();
+    }
+
+    private function fillMissingFromGoods(GoodsSku $sku, Goods $goods): void
+    {
+        $changed = false;
+
+        if (empty($sku->sku_name)) {
+            $sku->sku_name = '默认规格';
+            $changed = true;
+        }
+
+        if (empty($sku->sku_code)) {
+            $sku->sku_code = GoodsSku::DEFAULT_SKU_CODE;
+            $changed = true;
+        }
+
+        if ($sku->actual_price === null || $sku->actual_price === '') {
+            $sku->actual_price = $goods->actual_price;
+            $changed = true;
+        }
+
+        if (empty($sku->picture) && !empty($goods->picture)) {
+            $sku->picture = $goods->picture;
+            $changed = true;
+        }
+
+        if ($sku->in_stock === null || $sku->in_stock === '') {
+            $sku->in_stock = $goods->in_stock;
+            $changed = true;
+        }
+
+        if ($sku->ord === null || $sku->ord === '') {
+            $sku->ord = 1;
+            $changed = true;
+        }
+
+        if ($sku->is_open === null || $sku->is_open === '') {
+            $sku->is_open = BaseModel::STATUS_OPEN;
+            $changed = true;
+        }
+
+        if ($changed) {
+            $sku->save();
+        }
     }
 }
