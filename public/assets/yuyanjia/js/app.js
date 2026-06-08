@@ -127,6 +127,7 @@
         var cartItemsTarget = document.querySelector('[data-cart-items]');
         var cartEmpty = document.querySelector('[data-cart-empty]');
         var cartTotal = document.querySelector('[data-cart-total]');
+        var cartCheckout = document.querySelector('[data-cart-checkout]');
         var cartCounts = document.querySelectorAll('[data-cart-count]');
         var cartKey = 'yuyanjia_cart_items';
 
@@ -267,6 +268,10 @@
                 target.textContent = String(cartQuantity(items));
             });
             if (cartTotal) cartTotal.textContent = total.toFixed(2);
+            if (cartCheckout) {
+                cartCheckout.disabled = !items.length;
+                cartCheckout.textContent = items.length > 1 ? '去结算 · ' + cartQuantity(items) + '件' : '去结算';
+            }
             if (cartEmpty) cartEmpty.style.display = items.length ? 'none' : '';
 
             cartItemsTarget.innerHTML = items.map(function (item) {
@@ -565,6 +570,23 @@
             clearCart.addEventListener('click', function () {
                 writeCart([]);
                 renderCart();
+            });
+        }
+
+        if (cartCheckout) {
+            cartCheckout.addEventListener('click', function () {
+                var items = readCart();
+                if (!items.length) {
+                    renderCart();
+                    return;
+                }
+
+                if (items.length > 1) {
+                    var confirmed = window.confirm('旧版发卡流程一次生成一个订单，我先带你结算购物车里的第一项；剩下的商品还会留在购物车里。');
+                    if (!confirmed) return;
+                }
+
+                window.location.href = appendPurchaseParams(items[0].url, items[0]);
             });
         }
 
