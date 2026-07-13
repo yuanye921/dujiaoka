@@ -78,7 +78,7 @@ class GameLicenseService
 
         $normalized = $this->normalizeCode($code);
         if (!$this->isValidCode($normalized)) {
-            return $this->error('INVALID_CODE', '没有找到这个解锁码 Plus。', 404);
+            return $this->error('INVALID_CODE', '没有找到这个解锁码 Plus。', 422);
         }
 
         return DB::transaction(function () use ($normalized, $gameId, $installId, $ip, $userAgent) {
@@ -89,7 +89,7 @@ class GameLicenseService
                 ->first();
 
             if (!$license) {
-                return $this->error('INVALID_CODE', '没有找到这个解锁码 Plus。', 404);
+                return $this->error('INVALID_CODE', '没有找到这个解锁码 Plus。', 422);
             }
             if ($license->status !== GameLicense::STATUS_ACTIVE) {
                 return $this->error('LICENSE_REVOKED', '这张解锁码当前已被停用，请联系售后。', 403);
@@ -144,7 +144,7 @@ class GameLicenseService
 
         $normalized = $this->normalizeCode($code);
         if (!$this->isValidCode($normalized)) {
-            return $this->error('INVALID_CODE', '没有找到可以找回的购买记录。', 404);
+            return $this->error('INVALID_CODE', '没有找到可以找回的购买记录。', 422);
         }
 
         $license = GameLicense::query()
@@ -152,7 +152,7 @@ class GameLicenseService
             ->where('code_hash', $this->codeHash($normalized))
             ->first();
         if (!$license || $license->status !== GameLicense::STATUS_ACTIVE || !$license->order) {
-            return $this->error('INVALID_CODE', '没有找到可以找回的购买记录。', 404);
+            return $this->error('INVALID_CODE', '没有找到可以找回的购买记录。', 422);
         }
         if ($license->game_id && $license->game_id !== $gameId) {
             return $this->error('WRONG_GAME', '这张解锁码已经属于另一款游戏。', 409);
