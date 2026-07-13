@@ -7,6 +7,7 @@ use App\Service\CouponService;
 use App\Service\EmailtplService;
 use App\Service\GoodsService;
 use App\Service\GoodsSkuService;
+use App\Service\GameLicenseService;
 use App\Service\OrderProcessService;
 use App\Service\OrderService;
 use App\Service\PayService;
@@ -46,6 +47,9 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->singleton('Service\EmailtplService', function () {
             return $this->app->make(EmailtplService::class);
+        });
+        $this->app->singleton('Service\GameLicenseService', function () {
+            return $this->app->make(GameLicenseService::class);
         });
         $this->app->singleton('Jenssegers\Agent', function () {
             return $this->app->make(Agent::class);

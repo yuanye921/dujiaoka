@@ -120,6 +120,11 @@ class Order extends BaseModel
         return $this->belongsTo(GoodsSku::class, 'sku_id');
     }
 
+    public function gameLicenses()
+    {
+        return $this->hasMany(GameLicense::class, 'order_id');
+    }
+
     /**
      * 关联优惠券
      *

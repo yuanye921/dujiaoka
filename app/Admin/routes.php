@@ -21,6 +21,7 @@ Route::group([
     $router->resource('emailtpl', 'EmailtplController');
     $router->resource('pay', 'PayController');
     $router->resource('order', 'OrderController');
+    $router->resource('game-license', 'GameLicenseController');
     $router->get('import-carmis', 'CarmisController@importCarmis');
     $router->get('system-setting', 'SystemSettingController@systemSetting');
     $router->get('email-test', 'EmailTestController@emailTest');

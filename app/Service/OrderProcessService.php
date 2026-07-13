@@ -66,6 +66,11 @@ class OrderProcessService
     private $emailtplService;
 
     /**
+     * @var \App\Service\GameLicenseService
+     */
+    private $gameLicenseService;
+
+    /**
      * 商品服务层.
      * @var \App\Service\GoodsService
      */
@@ -132,6 +137,7 @@ class OrderProcessService
         $this->carmisService = app('Service\CarmisService');
         $this->emailtplService = app('Service\EmailtplService');
         $this->goodsService = app('Service\GoodsService');
+        $this->gameLicenseService = app('Service\GameLicenseService');
 
     }
 
@@ -526,6 +532,8 @@ class OrderProcessService
         $order->save();
         // 将卡密设置为已售出
         $this->carmisService->soldByIDS($ids);
+        // Plus 授权与订单在同一事务内登记，失败时订单和发卡都会回滚。
+        $this->gameLicenseService->registerSoldCarmis($ids, $order, false);
         // 邮件数据
         $mailData = [
             'created_at' => $order->create_at,

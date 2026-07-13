@@ -57,4 +57,9 @@ class Carmis extends BaseModel
         return $this->belongsTo(GoodsSku::class, 'sku_id');
     }
 
+    public function gameLicense()
+    {
+        return $this->hasOne(GameLicense::class, 'carmis_id');
+    }
+
 }

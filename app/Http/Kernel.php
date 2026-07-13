@@ -65,6 +65,7 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        'license.cors' => \App\Http\Middleware\LicenseCors::class,
         'dujiaoka.boot' => DujiaoBoot::class,
         'dujiaoka.pay_gate_way' => PayGateWay::class,
         'install.check' => InstallCheck::class,
