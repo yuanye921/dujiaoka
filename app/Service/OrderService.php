@@ -275,15 +275,29 @@ class OrderService
      */
     public function withEmailAndPassword(string $email, string $searchPwd = '')
     {
+        $email = strtolower(trim($email));
         return Order::query()
             ->with(['coupon', 'pay', 'goods', 'sku'])
-            ->where('email', $email)
+            ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
             ->when(!empty($searchPwd), function ($query) use ($searchPwd) {
                 $query->where('search_pwd', $searchPwd);
             })
             ->orderBy('created_at', 'DESC')
             ->take(5)
             ->get();
+    }
+
+    /**
+     * 邮箱验证通过后分页读取全部历史订单。
+     */
+    public function verifiedEmailOrders(string $email, int $perPage = 20)
+    {
+        $perPage = max(1, min(100, $perPage));
+        return Order::query()
+            ->with(['coupon', 'pay', 'goods', 'sku'])
+            ->whereRaw('LOWER(TRIM(email)) = ?', [strtolower(trim($email))])
+            ->orderBy('created_at', 'DESC')
+            ->paginate($perPage);
     }
 
     /**

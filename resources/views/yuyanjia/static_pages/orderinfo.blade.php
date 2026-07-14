@@ -60,6 +60,7 @@
                     </div>
                 </article>
             @endforeach
+            @include('common.orderRecoveryPagination')
         </div>
     </section>
 @stop

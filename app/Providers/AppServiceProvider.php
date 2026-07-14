@@ -9,6 +9,7 @@ use App\Service\GoodsService;
 use App\Service\GoodsSkuService;
 use App\Service\GameLicenseService;
 use App\Service\OrderProcessService;
+use App\Service\OrderRecoveryService;
 use App\Service\OrderService;
 use App\Service\PayService;
 use Illuminate\Support\Facades\URL;
@@ -44,6 +45,9 @@ class AppServiceProvider extends ServiceProvider
         });
         $this->app->singleton('Service\OrderProcessService', function () {
             return $this->app->make(OrderProcessService::class);
+        });
+        $this->app->singleton('Service\OrderRecoveryService', function () {
+            return $this->app->make(OrderRecoveryService::class);
         });
         $this->app->singleton('Service\EmailtplService', function () {
             return $this->app->make(EmailtplService::class);

@@ -84,6 +84,7 @@
                 </div>
             </div>
         </div>
+        @include('common.orderRecovery')
     </section>
     <!-- main end -->
 @stop

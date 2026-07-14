@@ -210,6 +210,8 @@
         </div>
     </div>
 
+    @include('common.orderRecoveryPagination')
+
     @include('luna.layouts._footer')
 
     <div class="query-m">
@@ -245,4 +247,3 @@
 
     </script>
 @endsection
-

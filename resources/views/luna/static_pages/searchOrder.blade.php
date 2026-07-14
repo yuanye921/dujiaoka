@@ -106,6 +106,7 @@
             </div>
         </div>
     </div>
+    @include('common.orderRecovery')
     @include('luna.layouts._footer')
     </body>
 @endsection

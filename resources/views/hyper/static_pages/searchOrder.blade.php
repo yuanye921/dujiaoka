@@ -95,4 +95,5 @@
         </div>
     </div>
 </div>
+@include('common.orderRecovery')
 @stop

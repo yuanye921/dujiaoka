@@ -112,12 +112,12 @@ class Order extends BaseModel
      */
     public function goods()
     {
-        return $this->belongsTo(Goods::class, 'goods_id');
+        return $this->belongsTo(Goods::class, 'goods_id')->withTrashed();
     }
 
     public function sku()
     {
-        return $this->belongsTo(GoodsSku::class, 'sku_id');
+        return $this->belongsTo(GoodsSku::class, 'sku_id')->withTrashed();
     }
 
     public function gameLicenses()

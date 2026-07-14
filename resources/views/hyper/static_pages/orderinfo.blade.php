@@ -102,6 +102,7 @@
         </div>
     </div>
 @endforeach
+@include('common.orderRecoveryPagination')
 </div>
 @if(!count($orders))
 <div class="row justify-content-center">

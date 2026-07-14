@@ -6,6 +6,7 @@ use App\Exceptions\RuleValidationException;
 use App\Http\Controllers\BaseController;
 use App\Models\Order;
 use App\Service\OrderProcessService;
+use App\Service\OrderRecoveryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
@@ -37,10 +38,16 @@ class OrderController extends BaseController
      */
     private $orderProcessService;
 
+    /**
+     * @var OrderRecoveryService
+     */
+    private $orderRecoveryService;
+
     public function __construct()
     {
         $this->orderService = app('Service\OrderService');
         $this->orderProcessService = app('Service\OrderProcessService');
+        $this->orderRecoveryService = app('Service\OrderRecoveryService');
     }
 
     /**
@@ -257,10 +264,78 @@ class OrderController extends BaseController
             return $this->err(__('dujiaoka.prompt.server_illegal_request'));
         }
         $orders = $this->orderService->withEmailAndPassword($request->input('email'), $request->input('search_pwd',''));
-        if (!$orders) {
+        if ($orders->count() === 0) {
             return $this->err(__('dujiaoka.prompt.no_related_order_found'));
         }
         return $this->render('static_pages/orderinfo', ['orders' => $orders], __('dujiaoka.page-title.order-detail'));
+    }
+
+    /**
+     * 向购买邮箱发送历史订单找回验证码。
+     */
+    public function requestOrderRecovery(Request $request)
+    {
+        $result = $this->orderRecoveryService->request(
+            (string) $request->input('recovery_email', ''),
+            (string) $request->getClientIp(),
+            (string) $request->userAgent()
+        );
+
+        return $this->render('static_pages/searchOrder', [
+            'orderRecoveryError' => $result['ok'] ? '' : $result['message'],
+            'orderRecoveryMessage' => $result['ok'] ? $result['message'] : '',
+            'orderRecoveryChallengeId' => $result['challenge_id'] ?? '',
+            'orderRecoveryMaskedEmail' => $result['masked_email'] ?? '',
+        ], __('dujiaoka.page-title.order-search'));
+    }
+
+    /**
+     * 确认邮箱验证码并为当前会话签发临时查看权限。
+     */
+    public function confirmOrderRecovery(Request $request)
+    {
+        $result = $this->orderRecoveryService->confirm(
+            (string) $request->input('challenge_id', ''),
+            (string) $request->input('otp', '')
+        );
+
+        if (!$result['ok']) {
+            return $this->render('static_pages/searchOrder', [
+                'orderRecoveryError' => $result['message'],
+                'orderRecoveryMessage' => '',
+                'orderRecoveryChallengeId' => $result['challenge_id'] ?? '',
+                'orderRecoveryMaskedEmail' => $result['masked_email'] ?? '',
+            ], __('dujiaoka.page-title.order-search'));
+        }
+
+        $request->session()->put('order_recovery_challenge_id', $result['challenge_id']);
+        return redirect(url('order-recovery/results'));
+    }
+
+    /**
+     * 显示邮箱验证通过后的全部历史订单。
+     */
+    public function orderRecoveryResults(Request $request)
+    {
+        $challengeId = (string) $request->session()->get('order_recovery_challenge_id', '');
+        $email = $this->orderRecoveryService->verifiedEmail(
+            $challengeId,
+            (int) config('licenses.order_recovery_session_minutes', 30)
+        );
+        if (!$email) {
+            $request->session()->forget('order_recovery_challenge_id');
+            return $this->err('历史订单查看权限已失效，请重新接收邮箱验证码。', url('order-search'));
+        }
+
+        $orders = $this->orderService->verifiedEmailOrders($email, 20);
+        if ($orders->count() === 0) {
+            return $this->err(__('dujiaoka.prompt.no_related_order_found'), url('order-search'));
+        }
+
+        return $this->render('static_pages/orderinfo', [
+            'orders' => $orders,
+            'orderRecoveryVerified' => true,
+        ], __('dujiaoka.page-title.order-detail'));
     }
 
     /**

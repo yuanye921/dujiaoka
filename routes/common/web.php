@@ -32,6 +32,10 @@ Route::group(['middleware' => ['dujiaoka.boot'],'namespace' => 'Home'], function
     Route::post('search-order-by-sn', 'OrderController@searchOrderBySN');
     // 通过邮箱查询
     Route::post('search-order-by-email', 'OrderController@searchOrderByEmail');
+    // 通过邮箱验证码找回历史订单
+    Route::post('order-recovery/request', 'OrderController@requestOrderRecovery');
+    Route::post('order-recovery/confirm', 'OrderController@confirmOrderRecovery');
+    Route::get('order-recovery/results', 'OrderController@orderRecoveryResults');
     // 通过浏览器查询
     Route::post('search-order-by-browser', 'OrderController@searchOrderByBrowser');
 });

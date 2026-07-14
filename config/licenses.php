@@ -7,6 +7,7 @@ return [
     'lease_hours' => (int) env('LICENSE_LEASE_HOURS', 24),
     'otp_minutes' => (int) env('LICENSE_OTP_MINUTES', 10),
     'otp_max_attempts' => (int) env('LICENSE_OTP_MAX_ATTEMPTS', 5),
+    'order_recovery_session_minutes' => (int) env('ORDER_RECOVERY_SESSION_MINUTES', 30),
     'code_pepper' => env('LICENSE_CODE_PEPPER', env('APP_KEY')),
     'token_pepper' => env('LICENSE_TOKEN_PEPPER', env('APP_KEY')),
     'otp_pepper' => env('LICENSE_OTP_PEPPER', env('APP_KEY')),

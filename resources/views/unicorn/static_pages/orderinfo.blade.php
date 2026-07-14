@@ -90,6 +90,7 @@
                     </div>
 
                     @endforeach
+                    @include('common.orderRecoveryPagination')
                 </div>
             </div>
         </div>

@@ -43,6 +43,7 @@
                     </form>
                 </div>
             </div>
+            @include('common.orderRecovery')
         </div>
     </section>
 @stop
