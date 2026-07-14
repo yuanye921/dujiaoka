@@ -17,9 +17,19 @@ class GameLicenseController extends AdminController
     protected function grid()
     {
         return Grid::make(new GameLicense(['order', 'carmis', 'sku']), function (Grid $grid) {
+            $grid->setName('game_license');
+            $pageName = $grid->model()->getPageName();
+            $perPageName = $grid->model()->getPerPageName();
+            $currentPage = max(1, (int) request()->query($pageName, request()->query('page', 1)));
+            $requestedPerPage = (int) request()->query($perPageName, request()->query('per_page', 20));
+            $perPage = in_array($requestedPerPage, [20, 50, 100, 200], true) ? $requestedPerPage : 20;
+
+            // Resolve these values before Dcat builds its query. Otherwise this Dcat
+            // release can keep the first resolved page in memory for the whole grid.
+            $grid->model()->setCurrentPage($currentPage);
+            $grid->paginate($perPage);
             $grid->model()->orderBy('id', 'desc');
             $grid->showPagination();
-            $grid->paginate(20);
             $grid->perPages([20, 50, 100, 200]);
 
             // This Dcat version routes every link through PJAX. On this wide grid the
@@ -37,8 +47,12 @@ if (!window.gameLicensePaginatorFallbackBound) {
         }
 
         var url = new URL(link.href, window.location.href);
-        if (!url.searchParams.has('page') && !url.searchParams.has('per_page')) {
+        if (!url.searchParams.has('game_license_page') && !url.searchParams.has('game_license_per_page')) {
             return;
+        }
+
+        if (url.searchParams.has('game_license_per_page')) {
+            url.searchParams.set('game_license_page', '1');
         }
 
         event.preventDefault();
