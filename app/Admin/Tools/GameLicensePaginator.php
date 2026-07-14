@@ -79,16 +79,6 @@ class GameLicensePaginator extends Paginator
 
     private function pageUrl(int $page, int $perPage): string
     {
-        $query = request()->query();
-        unset(
-            $query['page'],
-            $query['per_page'],
-            $query['game_license_page'],
-            $query['game_license_per_page'],
-            $query['_pjax']
-        );
-
-        $url = admin_url("game-license-page/{$page}/{$perPage}");
-        return $query ? $url . '?' . http_build_query($query) : $url;
+        return admin_url("game-license-page/{$page}/{$perPage}");
     }
 }

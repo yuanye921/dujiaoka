@@ -12,9 +12,39 @@ use Dcat\Admin\Grid;
 use Dcat\Admin\Http\Controllers\AdminController;
 use Dcat\Admin\Layout\Content;
 use Dcat\Admin\Show;
+use Illuminate\Http\Request;
 
 class GameLicenseController extends AdminController
 {
+    private const SEARCH_SESSION_KEY = 'admin.game_license.search_filters';
+
+    public function search(Request $request)
+    {
+        $filters = [];
+
+        foreach ($request->all() as $key => $value) {
+            if (strpos((string) $key, 'game_license_') !== 0) {
+                continue;
+            }
+
+            $value = $this->sanitizeSearchValue($value);
+            if ($value !== null && $value !== '' && $value !== []) {
+                $filters[$key] = $value;
+            }
+        }
+
+        $request->session()->put(self::SEARCH_SESSION_KEY, $filters);
+
+        return redirect(admin_url('game-license'));
+    }
+
+    public function clearSearch(Request $request)
+    {
+        $request->session()->forget(self::SEARCH_SESSION_KEY);
+
+        return redirect(admin_url('game-license'));
+    }
+
     public function indexPage(Content $content, $page, $perPage)
     {
         $page = max(1, (int) $page);
@@ -29,6 +59,8 @@ class GameLicenseController extends AdminController
 
     protected function grid()
     {
+        $this->applyStoredSearchFilters();
+
         return Grid::make(new GameLicense(['order', 'carmis', 'sku']), function (Grid $grid) {
             $grid->setName('game_license');
             $grid->setResource('game-license');
@@ -70,6 +102,8 @@ class GameLicenseController extends AdminController
             $grid->disableBatchDelete();
 
             $grid->filter(function (Grid\Filter $filter) {
+                $filter->setAction(admin_url('game-license-search'));
+                $filter->view('admin.game-license-filter');
                 $filter->equal('order.order_sn', '订单号');
                 $filter->equal('order.email', '订单邮箱');
                 $filter->equal('game_id', '绑定游戏')->select(config('licenses.games', []));
@@ -100,6 +134,41 @@ class GameLicenseController extends AdminController
                 $actions->append(new RevokeGameLicense());
             });
         });
+    }
+
+    private function applyStoredSearchFilters(): void
+    {
+        $filters = session()->get(self::SEARCH_SESSION_KEY, []);
+        if (! is_array($filters)) {
+            return;
+        }
+
+        foreach ($filters as $key => $value) {
+            if (strpos((string) $key, 'game_license_') === 0) {
+                request()->query->set($key, $value);
+            }
+        }
+    }
+
+    private function sanitizeSearchValue($value)
+    {
+        if (is_array($value)) {
+            $sanitized = [];
+            foreach ($value as $key => $item) {
+                $item = $this->sanitizeSearchValue($item);
+                if ($item !== null && $item !== '' && $item !== []) {
+                    $sanitized[$key] = $item;
+                }
+            }
+
+            return $sanitized;
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        return mb_substr(trim((string) $value), 0, 255);
     }
 
     protected function detail($id)

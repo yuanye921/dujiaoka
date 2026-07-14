@@ -23,6 +23,8 @@ Route::group([
     $router->resource('order', 'OrderController');
     $router->get('game-license-page/{page}/{perPage}', 'GameLicenseController@indexPage')
         ->where(['page' => '[0-9]+', 'perPage' => '[0-9]+']);
+    $router->post('game-license-search', 'GameLicenseController@search');
+    $router->get('game-license-search-clear', 'GameLicenseController@clearSearch');
     $router->resource('game-license', 'GameLicenseController');
     $router->get('import-carmis', 'CarmisController@importCarmis');
     $router->get('system-setting', 'SystemSettingController@systemSetting');
