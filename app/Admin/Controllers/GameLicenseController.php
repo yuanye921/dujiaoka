@@ -5,19 +5,34 @@ namespace App\Admin\Controllers;
 use App\Admin\Actions\Post\AllowLicenseRecovery;
 use App\Admin\Actions\Post\RevokeGameLicense;
 use App\Admin\Repositories\GameLicense;
+use App\Admin\Tools\GameLicensePaginator;
 use App\Models\GameLicense as GameLicenseModel;
-use Dcat\Admin\Admin;
 use Dcat\Admin\Form;
 use Dcat\Admin\Grid;
 use Dcat\Admin\Http\Controllers\AdminController;
+use Dcat\Admin\Layout\Content;
 use Dcat\Admin\Show;
 
 class GameLicenseController extends AdminController
 {
+    public function indexPage(Content $content, $page, $perPage)
+    {
+        $page = max(1, (int) $page);
+        $perPage = (int) $perPage;
+        $perPage = in_array($perPage, [20, 50, 100, 200], true) ? $perPage : 20;
+
+        request()->query->set('game_license_page', $page);
+        request()->query->set('game_license_per_page', $perPage);
+
+        return $this->index($content);
+    }
+
     protected function grid()
     {
         return Grid::make(new GameLicense(['order', 'carmis', 'sku']), function (Grid $grid) {
             $grid->setName('game_license');
+            $grid->setResource('game-license');
+            $grid->setPaginatorClass(GameLicensePaginator::class);
             $pageName = $grid->model()->getPageName();
             $perPageName = $grid->model()->getPerPageName();
             $currentPage = max(1, (int) request()->query($pageName, request()->query('page', 1)));
@@ -31,37 +46,6 @@ class GameLicenseController extends AdminController
             $grid->model()->orderBy('id', 'desc');
             $grid->showPagination();
             $grid->perPages([20, 50, 100, 200]);
-
-            // This Dcat version routes every link through PJAX. On this wide grid the
-            // paginator can silently stop after a PJAX timeout, so use a normal page
-            // navigation for the two footer controls only.
-            Admin::script(<<<'JS'
-if (!window.gameLicensePaginatorFallbackBound) {
-    window.gameLicensePaginatorFallbackBound = true;
-    document.addEventListener('click', function (event) {
-        var target = event.target;
-        var link = target && target.closest ? target.closest('a') : null;
-        var footer = link && link.closest ? link.closest('.box-footer') : null;
-        if (!link || !footer || !link.href) {
-            return;
-        }
-
-        var url = new URL(link.href, window.location.href);
-        if (!url.searchParams.has('game_license_page') && !url.searchParams.has('game_license_per_page')) {
-            return;
-        }
-
-        if (url.searchParams.has('game_license_per_page')) {
-            url.searchParams.set('game_license_page', '1');
-        }
-
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        window.location.assign(url.toString());
-    }, true);
-}
-JS
-            );
             $grid->column('id')->sortable();
             $grid->column('carmis.carmi', '卡密')->display(function ($code) {
                 return app('Service\GameLicenseService')->maskCode((string) $code);

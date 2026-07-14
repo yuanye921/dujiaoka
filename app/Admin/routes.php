@@ -21,6 +21,8 @@ Route::group([
     $router->resource('emailtpl', 'EmailtplController');
     $router->resource('pay', 'PayController');
     $router->resource('order', 'OrderController');
+    $router->get('game-license-page/{page}/{perPage}', 'GameLicenseController@indexPage')
+        ->where(['page' => '[0-9]+', 'perPage' => '[0-9]+']);
     $router->resource('game-license', 'GameLicenseController');
     $router->get('import-carmis', 'CarmisController@importCarmis');
     $router->get('system-setting', 'SystemSettingController@systemSetting');
