@@ -50,6 +50,13 @@ class GameLicenseServiceTest extends TestCase
         $this->assertTrue($verify['ok']);
         $this->assertDatabaseHas('license_binding_events', ['event_type' => 'verified']);
 
+        $sameBrowser = $this->licenses->claim('YYJP-ABCD-EFGH-IJKL', 'magic_world', 'install-browser-a');
+        $this->assertTrue($sameBrowser['ok']);
+        $this->assertNotSame($claim['device_token'], $sameBrowser['device_token']);
+        $this->assertSame('INVALID_DEVICE', $this->licenses->verify($claim['device_token'], 'magic_world', 'install-browser-a')['code']);
+        $this->assertTrue($this->licenses->verify($sameBrowser['device_token'], 'magic_world', 'install-browser-a')['ok']);
+        $this->assertDatabaseHas('license_binding_events', ['event_type' => 'reclaimed_same_device']);
+
         $otherBrowser = $this->licenses->claim('YYJP-ABCD-EFGH-IJKL', 'magic_world', 'install-browser-b');
         $this->assertSame('RECOVERY_REQUIRED', $otherBrowser['code']);
         $this->assertSame('b***@qq.com', $otherBrowser['masked_email']);

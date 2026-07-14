@@ -101,6 +101,12 @@ class GameLicenseService
             }
 
             $override = $license->recovery_override_until && $license->recovery_override_until->isFuture();
+            $sameInstall = $license->device_token_hash &&
+                $license->install_id_hash &&
+                hash_equals((string) $license->install_id_hash, $this->installHash($installId));
+            if (!$override && !$license->requires_email_verification && $sameInstall) {
+                return $this->rotateBinding($license, $gameId, $installId, $ip, $userAgent, 'reclaimed_same_device');
+            }
             if (!$override && ($license->requires_email_verification || $license->device_token_hash)) {
                 return $this->error(
                     'RECOVERY_REQUIRED',
