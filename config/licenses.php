@@ -3,6 +3,7 @@
 return [
     'enabled' => env('LICENSE_SERVICE_ENABLED', false),
     'plus_sku_code' => env('LICENSE_PLUS_SKU_CODE', 'GAME_PLUS'),
+    'legacy_plus_goods_ids' => array_values(array_filter(array_map('intval', preg_split('/[\s,]+/', trim((string) env('LICENSE_LEGACY_PLUS_GOODS_IDS', '')))))),
     'lease_hours' => (int) env('LICENSE_LEASE_HOURS', 24),
     'otp_minutes' => (int) env('LICENSE_OTP_MINUTES', 10),
     'otp_max_attempts' => (int) env('LICENSE_OTP_MAX_ATTEMPTS', 5),

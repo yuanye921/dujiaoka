@@ -128,6 +128,22 @@ class GameLicenseServiceTest extends TestCase
         $this->assertSame(0, GameLicense::query()->count());
     }
 
+    public function test_legacy_standalone_plus_product_requires_an_explicit_goods_allowlist(): void
+    {
+        [$order, $carmisId] = $this->seedSoldPlusCode('YYJP-ABCD-EFGH-IJKL', false, 'DEFAULT');
+        DB::table('goods_skus')->where('id', $order->sku_id)->update(['deleted_at' => now()]);
+        DB::table('carmis')->where('id', $carmisId)->update(['deleted_at' => now()]);
+
+        $this->assertSame(0, $this->licenses->registerSoldCarmis([$carmisId], $order, true));
+        $this->assertSame(1, $this->licenses->registerSoldCarmis([$carmisId], $order, true, [27]));
+        $this->assertDatabaseHas('game_licenses', [
+            'carmis_id' => $carmisId,
+            'order_id' => $order->id,
+            'is_legacy' => 1,
+            'requires_email_verification' => 1,
+        ]);
+    }
+
     private function seedSoldPlusCode(string $code, bool $legacy = false, string $skuCode = 'GAME_PLUS'): array
     {
         $now = now();

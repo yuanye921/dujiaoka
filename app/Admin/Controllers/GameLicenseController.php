@@ -6,6 +6,7 @@ use App\Admin\Actions\Post\AllowLicenseRecovery;
 use App\Admin\Actions\Post\RevokeGameLicense;
 use App\Admin\Repositories\GameLicense;
 use App\Models\GameLicense as GameLicenseModel;
+use Dcat\Admin\Admin;
 use Dcat\Admin\Form;
 use Dcat\Admin\Grid;
 use Dcat\Admin\Http\Controllers\AdminController;
@@ -17,6 +18,36 @@ class GameLicenseController extends AdminController
     {
         return Grid::make(new GameLicense(['order', 'carmis', 'sku']), function (Grid $grid) {
             $grid->model()->orderBy('id', 'desc');
+            $grid->showPagination();
+            $grid->paginate(20);
+            $grid->perPages([20, 50, 100, 200]);
+
+            // This Dcat version routes every link through PJAX. On this wide grid the
+            // paginator can silently stop after a PJAX timeout, so use a normal page
+            // navigation for the two footer controls only.
+            Admin::script(<<<'JS'
+if (!window.gameLicensePaginatorFallbackBound) {
+    window.gameLicensePaginatorFallbackBound = true;
+    document.addEventListener('click', function (event) {
+        var target = event.target;
+        var link = target && target.closest ? target.closest('a') : null;
+        var footer = link && link.closest ? link.closest('.box-footer') : null;
+        if (!link || !footer || !link.href) {
+            return;
+        }
+
+        var url = new URL(link.href, window.location.href);
+        if (!url.searchParams.has('page') && !url.searchParams.has('per_page')) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.location.assign(url.toString());
+    }, true);
+}
+JS
+            );
             $grid->column('id')->sortable();
             $grid->column('carmis.carmi', '卡密')->display(function ($code) {
                 return app('Service\GameLicenseService')->maskCode((string) $code);

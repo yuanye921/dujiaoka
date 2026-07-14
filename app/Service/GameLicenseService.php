@@ -19,14 +19,16 @@ class GameLicenseService
 {
     const CODE_PATTERN = '/^YYJP-[A-Z0-9]{4}(?:-[A-Z0-9]{4}){2}$/';
 
-    public function registerSoldCarmis(array $carmisIds, Order $order, bool $legacy = false): int
+    public function registerSoldCarmis(array $carmisIds, Order $order, bool $legacy = false, array $legacyGoodsIds = []): int
     {
-        $sku = GoodsSku::query()->find($order->sku_id);
-        if (!$sku || !$this->isPlusSku($sku)) {
+        $skuQuery = $legacy ? GoodsSku::withTrashed() : GoodsSku::query();
+        $sku = $skuQuery->find($order->sku_id);
+        if (!$sku || !$this->isPlusSku($sku, $legacy ? $legacyGoodsIds : [])) {
             return 0;
         }
 
-        $carmis = Carmis::query()->whereIn('id', $carmisIds)->get();
+        $carmisQuery = $legacy ? Carmis::withTrashed() : Carmis::query();
+        $carmis = $carmisQuery->whereIn('id', $carmisIds)->get();
         if ($carmis->count() !== count($carmisIds)) {
             throw new RuntimeException('Plus license inventory could not be resolved completely.');
         }
@@ -303,9 +305,14 @@ class GameLicenseService
         return $visible . '***@' . $parts[1];
     }
 
-    private function isPlusSku(GoodsSku $sku): bool
+    private function isPlusSku(GoodsSku $sku, array $legacyGoodsIds = []): bool
     {
-        return strtoupper(trim((string) $sku->sku_code)) === strtoupper((string) config('licenses.plus_sku_code', 'GAME_PLUS'));
+        if (strtoupper(trim((string) $sku->sku_code)) === strtoupper((string) config('licenses.plus_sku_code', 'GAME_PLUS'))) {
+            return true;
+        }
+
+        $legacyGoodsIds = array_map('intval', $legacyGoodsIds);
+        return in_array((int) $sku->goods_id, $legacyGoodsIds, true);
     }
 
     private function isValidGame(string $gameId): bool
