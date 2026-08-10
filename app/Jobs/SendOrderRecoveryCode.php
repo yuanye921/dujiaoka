@@ -34,9 +34,13 @@ class SendOrderRecoveryCode implements ShouldQueue
         $email = Crypt::decryptString($challenge->email_cipher);
         $otp = Crypt::decryptString($challenge->otp_cipher);
         $minutes = max(1, (int) config('licenses.otp_minutes', 10));
-        $content = '<p>您正在查看购买邮箱下的历史订单。</p>'
-            . '<p>验证码：<strong style="font-size:24px;letter-spacing:4px">' . e($otp) . '</strong></p>'
-            . '<p>验证码将在 ' . $minutes . ' 分钟后失效。如果不是您本人操作，请忽略这封邮件。</p>';
+        $content = view('email.verification_code', [
+            'heading' => '历史订单找回验证码',
+            'subheading' => '请使用下方验证码查看购买邮箱下的历史订单。',
+            'intro' => '您正在查看购买邮箱下的历史订单。',
+            'code' => $otp,
+            'minutes' => $minutes,
+        ])->render();
 
         $mail = new MailSend($email, '历史订单找回验证码', $content);
         $mail->handle();
