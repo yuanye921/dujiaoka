@@ -1,7 +1,7 @@
 @php
     $brand = trim((string) dujiaoka_config_get('text_logo', '预言家SHOP'));
 @endphp
-<div style="margin:0;padding:24px 0;background:#f3f6fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;color:#07111f;">
+<div data-mail-template="verification-code" style="margin:0;padding:24px 0;background:#f3f6fb;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;color:#07111f;">
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="border-collapse:collapse;">
         <tr>
             <td align="center" style="padding:0 12px;">
