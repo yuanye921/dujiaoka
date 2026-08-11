@@ -19,6 +19,7 @@ use App\Models\GoodsSku;
 use App\Models\Order;
 use App\Rules\SearchPwd;
 use App\Rules\VerifyImg;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -229,7 +230,41 @@ class OrderService
     public function detailOrderSN(string $orderSN):? Order
     {
         $order = Order::query()->with(['coupon', 'pay', 'goods', 'sku'])->where('order_sn', $orderSN)->first();
+        $this->expireOrderIfTimedOut($order);
         return $order;
+    }
+
+    public function isOrderExpiredByAge(Order $order): bool
+    {
+        if (!$order->created_at) {
+            return false;
+        }
+
+        $expiredMinutes = max(1, (int) dujiaoka_config_get('order_expire_time', 5));
+        return Carbon::parse($order->created_at)->addMinutes($expiredMinutes)->lte(Carbon::now());
+    }
+
+    public function expireOrderIfTimedOut(?Order $order): void
+    {
+        if (!$order || $order->status != Order::STATUS_WAIT_PAY || !$this->isOrderExpiredByAge($order)) {
+            return;
+        }
+
+        $updated = Order::query()
+            ->where('id', $order->id)
+            ->where('status', Order::STATUS_WAIT_PAY)
+            ->update(['status' => Order::STATUS_EXPIRED]);
+
+        if (!$updated) {
+            return;
+        }
+
+        $order->status = Order::STATUS_EXPIRED;
+        if ($order->coupon_id && (int) $order->coupon_ret_back !== Order::COUPON_BACK_OK) {
+            $this->couponService->retIncrByID((int) $order->coupon_id);
+            $this->couponIsBack($order->order_sn);
+            $order->coupon_ret_back = Order::COUPON_BACK_OK;
+        }
     }
 
     /**
@@ -244,7 +279,10 @@ class OrderService
      */
     public function expiredOrderSN(string $orderSN): bool
     {
-        return Order::query()->where('order_sn', $orderSN)->update(['status' => Order::STATUS_EXPIRED]);
+        return Order::query()
+            ->where('order_sn', $orderSN)
+            ->where('status', Order::STATUS_WAIT_PAY)
+            ->update(['status' => Order::STATUS_EXPIRED]);
     }
 
     /**
