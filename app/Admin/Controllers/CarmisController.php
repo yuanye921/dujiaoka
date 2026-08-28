@@ -3,8 +3,10 @@
 namespace App\Admin\Controllers;
 
 use App\Admin\Actions\Post\BatchRestore;
+use App\Admin\Actions\Post\IssuePlusLicense;
 use App\Admin\Actions\Post\Restore;
 use App\Admin\Forms\ImportCarmis;
+use App\Admin\Forms\ManualPlusIssue;
 use App\Admin\Repositories\Carmis;
 use App\Models\Goods;
 use App\Models\GoodsSku;
@@ -28,6 +30,13 @@ class CarmisController extends AdminController
     protected function grid()
     {
         return Grid::make(new Carmis(['goods', 'sku']), function (Grid $grid) {
+            $plusSkuIds = GoodsSku::query()
+                ->where('sku_code', config('licenses.plus_sku_code', 'GAME_PLUS'))
+                ->pluck('id')
+                ->map(function ($id) {
+                    return (int) $id;
+                })
+                ->all();
             $grid->model()->orderBy('id', 'DESC');
             $grid->column('id')->sortable();
             $grid->column('goods.gd_name', admin_trans('carmis.fields.goods_id'));
@@ -46,9 +55,16 @@ class CarmisController extends AdminController
                 $filter->equal('status')->select(CarmisModel::getStatusMap());
                 $filter->scope(admin_trans('dujiaoka.trashed'))->onlyTrashed();
             });
-            $grid->actions(function (Grid\Displayers\Actions $actions) {
+            $grid->actions(function (Grid\Displayers\Actions $actions) use ($plusSkuIds) {
                 if (request('_scope_') == admin_trans('dujiaoka.trashed')) {
                     $actions->append(new Restore(CarmisModel::class));
+                    return;
+                }
+
+                if (in_array((int) $actions->row->sku_id, $plusSkuIds, true)
+                    && (int) $actions->row->status === CarmisModel::STATUS_UNSOLD
+                    && (int) $actions->row->is_loop === 0) {
+                    $actions->append(new IssuePlusLicense());
                 }
             });
             $grid->batchActions(function (Grid\Tools\BatchActions $batch) {
@@ -133,6 +149,28 @@ class CarmisController extends AdminController
         return $content
             ->title(admin_trans('carmis.fields.import_carmis'))
             ->body(new Card(new ImportCarmis()));
+    }
+
+    public function issuePlus(Content $content, $id)
+    {
+        $carmis = CarmisModel::query()->with('sku')->findOrFail($id);
+        $skuCode = $carmis->sku ? $carmis->sku->sku_code : '';
+        $isPlus = strtoupper(trim((string) $skuCode)) === strtoupper((string) config('licenses.plus_sku_code', 'GAME_PLUS'));
+
+        abort_unless(
+            $isPlus && (int) $carmis->status === CarmisModel::STATUS_UNSOLD && (int) $carmis->is_loop === 0,
+            404
+        );
+
+        $code = app('Service\GameLicenseService')->maskCode((string) $carmis->carmi);
+
+        return $content
+            ->title('手动发放 Plus')
+            ->description('填写购买者邮箱后，系统会同时登记订单与游戏授权。')
+            ->body(new Card(new ManualPlusIssue([
+                'carmis_id' => $carmis->id,
+                'code' => $code,
+            ])));
     }
 
     private function skuOptions(): array

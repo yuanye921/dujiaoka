@@ -15,6 +15,7 @@ Route::group([
     $router->resource('goods', 'GoodsController');
     $router->resource('goods-sku', 'GoodsSkuController');
     $router->resource('goods-group', 'GoodsGroupController');
+    $router->get('carmis/{id}/issue-plus', 'CarmisController@issuePlus')->where('id', '[0-9]+');
     $router->resource('carmis', 'CarmisController');
     $router->resource('banner', 'BannerController');
     $router->resource('coupon', 'CouponController');
