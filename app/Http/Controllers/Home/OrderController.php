@@ -254,13 +254,7 @@ class OrderController extends BaseController
      */
     public function searchOrderByEmail(Request $request)
     {
-        if (
-            !$request->has('email') ||
-            (
-                dujiaoka_config_get('is_open_search_pwd', \App\Models\BaseModel::STATUS_CLOSE) == \App\Models\BaseModel::STATUS_OPEN &&
-                !$request->has('search_pwd')
-            )
-        ) {
+        if (!$request->filled('email') || !$request->filled('search_pwd')) {
             return $this->err(__('dujiaoka.prompt.server_illegal_request'));
         }
         $orders = $this->orderService->withEmailAndPassword($request->input('email'), $request->input('search_pwd',''));

@@ -26,12 +26,10 @@
                             <span>邮箱</span>
                             <input type="email" name="email" required>
                         </label>
-                        @if(dujiaoka_config_get('is_open_search_pwd', \App\Models\BaseModel::STATUS_CLOSE) == \App\Models\BaseModel::STATUS_OPEN)
-                            <label>
-                                <span>查询密码</span>
-                                <input type="password" name="search_pwd" required>
-                            </label>
-                        @endif
+                        <label>
+                            <span>查询密码</span>
+                            <input type="password" name="search_pwd" required>
+                        </label>
                         <button class="btn secondary" type="submit">查询订单</button>
                     </form>
 

@@ -304,7 +304,7 @@ class OrderService
      * 通过邮箱和查询密码查询
      *
      * @param string $email 邮箱
-     * @param string $searchPwd 查询面面
+     * @param string $searchPwd 查询密码
      * @return array|\Illuminate\Database\Concerns\BuildsQueries[]|\Illuminate\Database\Eloquent\Builder[]|\Illuminate\Database\Eloquent\Collection|\Illuminate\Database\Query\Builder[]|\Illuminate\Support\Collection
      *
      * @author    assimon<ashang@utf8.hk>
@@ -313,13 +313,15 @@ class OrderService
      */
     public function withEmailAndPassword(string $email, string $searchPwd = '')
     {
+        if (trim($searchPwd) === '') {
+            return (new Order())->newCollection();
+        }
+
         $email = strtolower(trim($email));
         return Order::query()
             ->with(['coupon', 'pay', 'goods', 'sku'])
             ->whereRaw('LOWER(TRIM(email)) = ?', [$email])
-            ->when(!empty($searchPwd), function ($query) use ($searchPwd) {
-                $query->where('search_pwd', $searchPwd);
-            })
+            ->where('search_pwd', $searchPwd)
             ->orderBy('created_at', 'DESC')
             ->take(5)
             ->get();

@@ -51,13 +51,11 @@
                                                         <input type="email" class="form-control form-control-sm"
                                                                id="email" name="email" required placeholder="">
                                                     </div>
-                                                    @if(dujiaoka_config_get('is_open_search_pwd', \App\Models\BaseModel::STATUS_CLOSE) == \App\Models\BaseModel::STATUS_OPEN)
-                                                        <div class="col-12 col-md-8">
-                                                            <label for="searchPwd" class="col-form-label">{{ __('order.fields.search_pwd') }}:</label>
-                                                            <input type="password" class="form-control form-control-sm"
-                                                                   id="searchPwd" name="search_pwd" required placeholder="">
-                                                        </div>
-                                                    @endif
+                                                    <div class="col-12 col-md-8">
+                                                        <label for="searchPwd" class="col-form-label">{{ __('order.fields.search_pwd') }}:</label>
+                                                        <input type="password" class="form-control form-control-sm"
+                                                               id="searchPwd" name="search_pwd" required placeholder="">
+                                                    </div>
                                                     <div class="col-12 mt-3">
                                                         <button type="submit" class="btn btn-outline-primary">
                                                             <i class="ali-icon">&#xe65c;</i> {{ __('dujiaoka.search_now') }}</button>

@@ -208,16 +208,14 @@
                                         @endif
                                     @endforeach
                                 @endif
-                                @if(dujiaoka_config_get('is_open_search_pwd') == \App\Models\Goods::STATUS_OPEN)
-                                    <div class="entry">
-                                        <span class="l-msg">{{ __('luna.buy_pass') }}：</span>
-                                        <label class="input">
-                                            <input type="text" name="search_pwd" value=""
-                                                   required lay-verify="required"
-                                                   placeholder="{{ __('luna.buy_pass_tips') }}">
-                                        </label>
-                                    </div>
-                                @endif
+                                <div class="entry">
+                                    <span class="l-msg">{{ __('luna.buy_pass') }}：</span>
+                                    <label class="input">
+                                        <input type="text" name="search_pwd" value=""
+                                               required lay-verify="required"
+                                               placeholder="{{ __('luna.buy_pass_tips') }}">
+                                    </label>
+                                </div>
                                 @if(dujiaoka_config_get('is_open_img_code') == \App\Models\Goods::STATUS_OPEN)
                                     <div class="entry code">
                                         <span class="l-msg">{{ __('luna.buy_code') }}：</span>

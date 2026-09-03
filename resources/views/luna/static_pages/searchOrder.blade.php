@@ -68,17 +68,15 @@
                                                        placeholder="" autocomplete="off">
                                             </label>
                                         </div>
-                                        @if(dujiaoka_config_get('is_open_search_pwd', \App\Models\BaseModel::STATUS_CLOSE) == \App\Models\BaseModel::STATUS_OPEN)
-                                            <div class="entry">
-                                                <span class="l-msg">{{ __('order.fields.search_pwd') }}:</span>
-                                                <label class="input">
-                                                    <input type="password" name="search_pwd"
-                                                           required lay-verify="required"
-                                                           placeholder=""
-                                                           autocomplete="off">
-                                                </label>
-                                            </div>
-                                        @endif
+                                        <div class="entry">
+                                            <span class="l-msg">{{ __('order.fields.search_pwd') }}:</span>
+                                            <label class="input">
+                                                <input type="password" name="search_pwd"
+                                                       required lay-verify="required"
+                                                       placeholder=""
+                                                       autocomplete="off">
+                                            </label>
+                                        </div>
                                         <div class="btn">
                                             <button lay-submit lay-filter="orderByAccount">
                                                 {{ __('dujiaoka.search_now') }}

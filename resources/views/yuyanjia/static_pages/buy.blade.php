@@ -88,12 +88,10 @@
                                 <input type="text" name="coupon_code" placeholder="没有可留空">
                             </label>
                         @endif
-                        @if(dujiaoka_config_get('is_open_search_pwd') == \App\Models\Goods::STATUS_OPEN)
-                            <label>
-                                <span>查询密码</span>
-                                <input type="text" name="search_pwd" required placeholder="查询订单时使用">
-                            </label>
-                        @endif
+                        <label>
+                            <span>查询密码</span>
+                            <input type="text" name="search_pwd" required placeholder="查询订单时使用">
+                        </label>
                         @if($type == \App\Models\Goods::MANUAL_PROCESSING && is_array($other_ipu))
                             @foreach($other_ipu as $ipu)
                                 @php

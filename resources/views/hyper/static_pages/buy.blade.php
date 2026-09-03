@@ -69,14 +69,12 @@
                         <input data-toggle="touchspin" type="text" name="by_amount" value="1" data-bts-max="999">
                     </div>
                 </div>
-                @if(dujiaoka_config_get('is_open_search_pwd') == \App\Models\Goods::STATUS_OPEN)
                 <div class="form-group">
                     {{-- 查询密码 --}}
                     <div class="buy-title">{{ __('hyper.buy_search_password') }}</div>
                     {{-- 查询订单密码 --}}
-                    <input type="text" name="search_pwd" value="" class="form-control" placeholder="{{ __('hyper.buy_input_search_password') }}">
+                    <input type="text" name="search_pwd" value="" class="form-control" required placeholder="{{ __('hyper.buy_input_search_password') }}">
                 </div>
-                @endif
                 @if(isset($open_coupon))
                     <div class="form-group">
                         {{-- 优惠码 --}}
@@ -195,13 +193,11 @@
             return false;
         }
         @endif
-        @if(dujiaoka_config_get('is_open_search_pwd') == \App\Models\Goods::STATUS_OPEN)
         if($("input[name='search_pwd']").val() == 0){
             {{-- 查询密码不能为空 --}}
             $.NotificationApp.send("{{ __('hyper.buy_warning') }}","{{ __('hyper.buy_empty_query_password') }}","top-center","rgba(0,0,0,0.2)","info");
             return false;
         }
-        @endif
         @if(dujiaoka_config_get('is_open_img_code') == \App\Models\Goods::STATUS_OPEN)
         if($("input[name='img_verify_code']").val() == ''){
             {{-- 验证码不能为空 --}}

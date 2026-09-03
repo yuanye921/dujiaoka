@@ -76,14 +76,12 @@
                                                                    id="coupon" name="coupon_code"   placeholder="" value="" >
                                                         </div>
                                                     @endif
-                                                    @if(dujiaoka_config_get('is_open_search_pwd') == \App\Models\Goods::STATUS_OPEN)
-                                                        <div class="col-xs-12 col-md-6">
-                                                            <label for="search_pwd" class="col-form-label">{{ __('dujiaoka.search_password') }}:</label>
-                                                            <input type="text"
-                                                                   class=" control form-control form-control-sm"
-                                                                   id="search_pwd" name="search_pwd" required  placeholder="" value="" >
-                                                        </div>
-                                                    @endif
+                                                    <div class="col-xs-12 col-md-6">
+                                                        <label for="search_pwd" class="col-form-label">{{ __('dujiaoka.search_password') }}:</label>
+                                                        <input type="text"
+                                                               class=" control form-control form-control-sm"
+                                                               id="search_pwd" name="search_pwd" required  placeholder="" value="" >
+                                                    </div>
 
                                                     @if(dujiaoka_config_get('is_open_img_code') == \App\Models\Goods::STATUS_OPEN)
                                                         <div class="col-12 col-md-6">

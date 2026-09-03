@@ -2,7 +2,6 @@
 
 namespace App\Rules;
 
-use App\Models\BaseModel;
 use Illuminate\Contracts\Validation\Rule;
 
 class SearchPwd implements Rule
@@ -26,10 +25,7 @@ class SearchPwd implements Rule
      */
     public function passes($attribute, $value)
     {
-        if (dujiaoka_config_get('is_open_search_pwd') == BaseModel::STATUS_OPEN && empty($value)) {
-            return false;
-        }
-        return true;
+        return trim((string) $value) !== '';
     }
 
     /**

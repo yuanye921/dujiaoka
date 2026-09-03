@@ -66,13 +66,11 @@
                                 <label for="validationCustom01">{{ __('hyper.searchOrder_email') }}</label>
                                 <input type="email" class="form-control" name="email" required  placeholder="{{ __('hyper.searchOrder_input_email') }}">
                             </div>
-                            @if(dujiaoka_config_get('is_open_search_pwd', \App\Models\BaseModel::STATUS_CLOSE) == \App\Models\BaseModel::STATUS_OPEN)
                             <div class="form-group mb-3">
                                 {{-- 查询密码 --}}
                                 <label for="validationCustom01">{{ __('hyper.searchOrder_search_password') }}</label>
                                 <input type="password" class="form-control" name="search_pwd" required  placeholder="{{ __('hyper.searchOrder_input_query_password') }}">
                             </div>
-                            @endif
                             <div class="form-group mb-3">
                                 {{-- 立即查询 --}}
                                 <button class="btn btn-primary" type="submit">{{ __('hyper.searchOrder_search_now') }}</button>
